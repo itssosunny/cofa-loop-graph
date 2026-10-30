@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cofa Loop Graph"
+  short_description: "180m loop and Level-2 dynamic BC/QM/QR verifier"
+  default_prompt: "Run cofa-loop-graph Checkpoint 1 on this workspace"

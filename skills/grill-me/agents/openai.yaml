@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill Me"
+  short_description: "Frontier-style interview to lock scope and decisions"
+  default_prompt: "Run grill-me 1-round frontier alignment"

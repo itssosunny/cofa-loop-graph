@@ -1,0 +1,47 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cofa-loop-graph",
+  "version": "0.1.0",
+  "description": "Lightweight 180-minute operating loop, Cofa-Grill alignment, 3-model subagents (Sol/Terra/Luna), and Level-2 dynamic BC/QM/QR verification suite for Codex.",
+  "author": {
+    "name": "Hackathon Developer"
+  },
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "codex-plugin",
+    "cofa-loop-graph",
+    "grill-me",
+    "verification",
+    "subagents",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Cofa Loop Graph",
+    "shortDescription": "180m operating loop, Cofa-Grill alignment, and dynamic BC/QM/QR verifier",
+    "longDescription": "Provides 2-Step Cofa-Grill scope alignment, progressive stakeholder questionnaire generation, anti-over-engineering guards, and pure-Python dynamic BC/QM/QR verification for Codex.",
+    "developerName": "Hackathon Developer",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write",
+      "Workflow"
+    ],
+    "defaultPrompt": [
+      "Run cofa-loop-graph Checkpoint 1 on this workspace.",
+      "Use to-questionnaire to draft progressive questions for domain stakeholders.",
+      "Run grill-me for a 1-round frontier alignment."
+    ],
+    "brandColor": "#0F766E",
+    "screenshots": []
+  },
+  "extensions": {
+    "com.openai.presentation": {
+      "displayName": "Cofa Loop Graph",
+      "shortDescription": "180m operating loop, Cofa-Grill alignment, and dynamic BC/QM/QR verifier"
+    }
+  }
+}

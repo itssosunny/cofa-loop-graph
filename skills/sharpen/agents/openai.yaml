@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sharpen"
+  short_description: "Anti-over-engineering rules and outcome-focused scope"
+  default_prompt: "Sharpen this task and enforce NO-OVER-ENGINEERING"

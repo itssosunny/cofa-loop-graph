@@ -1,0 +1,4 @@
+interface:
+  display_name: "To Questionnaire"
+  short_description: "Draft progressive questions for domain stakeholders"
+  default_prompt: "Draft progressive questions for 업무 담당자"

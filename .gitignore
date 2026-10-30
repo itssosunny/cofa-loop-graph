@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Environment variables & secrets
+.env
+.env.*
+.dev.vars
+
+# Temporary or runtime files
+.omo/
+**/.omo/
+.cofa/trace.json
+.cofa/decisions.tsv
+.cofa/repo_map.md
+
+# Ensure critical template and verifier files are always tracked
+!.cofa/trace.template.json
+!.cofa/cofa_verify.py
+!.cofa/luna_mcp.py
+!.cofa/with_server.py
+!.cofa/log_decision.sh

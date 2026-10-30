@@ -1,0 +1,20 @@
+{
+  "name": "cofa",
+  "interface": {
+    "displayName": "Cofa Loop Graph Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "cofa-loop-graph",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

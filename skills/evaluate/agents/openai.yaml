@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evaluate (6.0 Luna)"
+  short_description: "System-1 fast calibrated evaluation of state"
+  default_prompt: "Evaluate the following state using evaluate tool"

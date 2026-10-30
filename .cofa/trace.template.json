@@ -1,0 +1,91 @@
+{
+  "project_name": "populated-on-exam-day",
+  "has_web_server": true,
+  "server": {
+    "host": "0.0.0.0",
+    "port": 3000
+  },
+  "submission_docs": [
+    {
+      "path": "DETECTED_FROM_README.md",
+      "preserve_existing_headings": true
+    }
+  ],
+  "binary_checks": [
+    {
+      "id": "BC-01",
+      "source": "README.md",
+      "description": "<Populated at Checkpoint 1 from README.md>",
+      "decision_and_rationale": "<Why we chose this implementation approach>",
+      "code_refs": [],
+      "test_cmd": "",
+      "live_probe": {
+        "method": "GET",
+        "path": "/",
+        "expect_status": 200,
+        "expect_substrings": []
+      }
+    },
+    {
+      "id": "BC-02",
+      "source": "Scenario Agent DM (업무 담당자)",
+      "description": "<Populated at Checkpoint 1 from DM reply>",
+      "decision_and_rationale": "<How DM edge case was handled>",
+      "code_refs": [],
+      "test_cmd": "",
+      "live_probe": {
+        "method": "POST",
+        "path": "/api/validate",
+        "body": {},
+        "expect_status": 400,
+        "expect_substrings": []
+      }
+    }
+  ],
+  "quantitative_metrics": [
+    {
+      "id": "QM-01",
+      "source": "README.md / Platform Stability",
+      "description": "Max live endpoint latency (ms)",
+      "metric_type": "max_probe_latency_ms",
+      "operator": "<=",
+      "target": 1500
+    },
+    {
+      "id": "QM-02",
+      "source": "Task Specific",
+      "description": "<Populated at Checkpoint 1: e.g., minimum items or accuracy metric>",
+      "measure_cmd": "",
+      "operator": ">=",
+      "target": 100
+    }
+  ],
+  "qualitative_rubrics": [
+    {
+      "id": "QR-01",
+      "axis": "Intent (의도 관리)",
+      "instructions": "<Populated at Checkpoint 1: Does the implementation satisfy the domain workflow and Scenario Agent DM priorities?>",
+      "levels": [
+        "Core workflow or DM priority is missing or mocked",
+        "Main flow works but edge cases or feedback loop are partial",
+        "End-to-end workflow and DM edge cases work seamlessly with real state updates"
+      ]
+    },
+    {
+      "id": "QR-02",
+      "axis": "Cognition (인지 관리 — 사후 Q&A 방어)",
+      "instructions": "Do the recorded `decision_and_rationale` and `known_limitations` match the actual code in `code_refs` 1:1 without exaggeration?",
+      "levels": [
+        "Claims contradict actual code or omit unimplemented parts",
+        "Mostly aligned but vague on file locations or edge cases",
+        "1:1 exact alignment between code behavior, documented rationale, and known limitations"
+      ]
+    }
+  ],
+  "rejected_over_engineering": [
+    "<Populated at Checkpoint 1 via Cofa-Grill + sharpen: e.g., Rejected write-concurrency locks because API workload is read-heavy>"
+  ],
+  "known_limitations": [
+    "<Populated during implementation: honest trade-offs and remaining limitations for submission doc & 사후 Q&A>"
+  ]
+}
