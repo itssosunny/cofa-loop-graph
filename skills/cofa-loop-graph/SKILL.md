@@ -58,7 +58,7 @@ Main session (`6.1 Sol`):
 2. **Detect Task Archetype**:
    - **Archetype A: Data / Pipeline / ML / CLI**: No web server (`"has_web_server": false`). Focus on data parsing, schemas, numeric precision, and safe-but-wrong output prevention.
    - **Archetype B: Backend API / Microservice**: Web server (`"has_web_server": true`). Focus on `0.0.0.0` host binding, HTTP status codes, edge validation, and latency.
-   - **Archetype C: Full-Stack / Frontend Web App**: Web server (`"has_web_server": true`). Focus on `0.0.0.0` binding, UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero`, `inline-error`), and tabular numeric presentation.
+   - **Archetype C: Full-Stack / Frontend Web App**: Web server (`"has_web_server": true`). Focus on `0.0.0.0` binding, UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero`, `inline-error`), `NO-PASSWORD-POPUP-TRAP` (suppress Chrome password popup via `autoComplete="new-password"` or `type="text"` with `WebkitTextSecurity:'disc'` to prevent proctoring fullscreen-exit penalties), 1-click role switcher buttons (e.g., `[관리자 계정 즉시 로그인]`, `[직원 계정 즉시 로그인]`), and tabular numeric presentation.
 3. **Generate a 25-Line `.cofa/repo_map.md`**:
    Write a compact reference map to orient `fork_context: false` workers in 1 turn:
    - Primary entrypoint file paths.
@@ -106,7 +106,7 @@ Never build horizontal layers in isolation. Build vertical, testable slices adhe
 1. **`data/parser`**: Header-name mapping (never numeric indices) + row-level error quarantine (`validRows` / `invalidRows`) + Safe-But-Wrong avoidance (no silent 0/empty suppression).
 2. **`domain/model`**: Pure business logic, filtering, sorting, and aggregations (used as derived state via `useMemo`/computed, never duplicated into mutable `useState`).
 3. **`api/server`**: `0.0.0.0` routes returning structured data alongside anomaly metadata.
-4. **`ui/components`**: 4-Partition UI state (`Raw Data`, `View Control`, `Async Feedback`, `Derived State`) + UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero`, `inline-error`).
+4. **`ui/components`**: 4-Partition UI state (`Raw Data`, `View Control`, `Async Feedback`, `Derived State`) + UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero`, `inline-error`) + `NO-PASSWORD-POPUP-TRAP` (suppress Chrome password popup via `autoComplete="new-password"` or `type="text"` with `WebkitTextSecurity:'disc'` to prevent exam fullscreen exit) + 1-Click Role Switcher buttons (`[관리자 즉시 로그인]`, `[직원 즉시 로그인]`).
 
 ### Vertical Slicing Workflow
 For each vertical slice (e.g., Slice 1: End-to-End Core Flow, Slice 2: Edge-Case Handling, Slice 3: Fallbacks):

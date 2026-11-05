@@ -29,6 +29,8 @@ LOCALHOST_BIND_RE = re.compile(
 TODO_PLACEHOLDER_RE = re.compile(r"\b(?:TODO|FIXME|XXX|HACK)\b|raise\s+NotImplementedError")
 DEBUG_INSTRUMENTATION_RE = re.compile(r"\[DEBUG-[A-Za-z0-9_-]*\]")
 ALERT_STUB_RE = re.compile(r"\bwindow\.alert\s*\(")
+PASSWORD_INPUT_RE = re.compile(r'type\s*=\s*["\']password["\']', re.IGNORECASE)
+AUTOCOMPLETE_SAFE_RE = re.compile(r'autoComplete\s*=\s*["\'](?:new-password|off)["\']|autocomplete\s*=\s*["\'](?:new-password|off)["\']|WebkitTextSecurity', re.IGNORECASE)
 DEAD_HREF_RE = re.compile(r'href\s*=\s*["\']#["\']')
 TEST_CHEATING_RE = re.compile(
     r"\b(?:it|test|describe)\.(?:skip|only|todo)\b|@pytest\.mark\.(?:skip|xfail)\b|\bunittest\.skip\b"
@@ -765,6 +767,12 @@ def evaluate_four_perspective_graph(root: Path, trace: dict[str, Any]) -> dict[s
                         "rule": "P3-UI-ONTOLOGY",
                         "id": uf,
                         "detail": f"UI component '{uf}' uses window.alert() instead of 5-State inline-error feedback."
+                    })
+                if PASSWORD_INPUT_RE.search(text) and not AUTOCOMPLETE_SAFE_RE.search(text):
+                    p3_defects.append({
+                        "rule": "P3-PASSWORD-POPUP-TRAP",
+                        "id": uf,
+                        "detail": f"UI component '{uf}' has type='password' without autoComplete='new-password' or 'off'. Chrome password manager popup may steal focus and exit exam fullscreen mode! Use autoComplete='new-password' (or type='text' with WebkitTextSecurity:'disc') plus 1-click role login buttons."
                     })
 
     # 4. Perspective 4: traceability_dag

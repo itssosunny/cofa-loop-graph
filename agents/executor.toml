@@ -39,6 +39,9 @@ When building full-stack web applications, enforce strict 4-layer separation:
 ### 4. Conditional — Web Server / Frontend UI Tasks
 - If configuring or running a web server, always bind to `0.0.0.0` (never `localhost` or `127.0.0.1` only).
 - UI 5-State Matrix: implement clear `default`, `loading`, `empty`, `filter-zero` (with reset button), and `inline-error` (with clear recovery guidance; NEVER use `window.alert()`).
+- Auth / Login Popup Prevention & 1-Click Role Switcher (`NO-PASSWORD-POPUP-TRAP`):
+  1. Never use bare `<input type="password">` inside a standard `<form>` that triggers Chrome's native Password Manager popup (which breaks exam fullscreen mode!). Instead, use `type="text"` with CSS masking (`style={{ WebkitTextSecurity: 'disc' }}` or `autoComplete="off"` + `autoComplete="new-password"` + `data-lpignore="true"` + `data-1p-ignore="true"` on a non-credential form handler).
+  2. Whenever the problem involves multiple user roles or test accounts (e.g., `관리자` Admin vs `직원`/`사용자` Employee/User), ALWAYS provide 1-Click Quick-Login / Role Switcher buttons (e.g., `[관리자 계정 즉시 로그인]`, `[직원 계정 즉시 로그인]`) on the login UI and top header bar so roles can be tested with a single click without typing ID/PW credentials.
 - Format tabular numeric data using CSS `tabular-nums` for readability and alignment.
 - Prevent double-submit (`single-flight`) and stale search/filter race conditions (`AbortController`).
 - Avoid AI-slop visual patterns (e.g., arbitrary `border-l-4` side stripes, purple/cyan dark gradients).

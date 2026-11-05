@@ -55,7 +55,7 @@ The loop detects and supports three task archetypes seamlessly:
      - `data/parser`: Header-name mapping (never numeric indices) + row error quarantine + zero Safe-But-Wrong masking.
      - `domain/model`: Pure business logic, filtering, aggregations (derived state; never duplicated in mutable state).
      - `api/server`: `0.0.0.0` routes returning structured data + anomaly metadata.
-     - `ui/components`: 4-Partition state (`Raw Data`, `View Control`, `Async Feedback`, `Derived State`) + UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero` with reset, `inline-error` with recovery guidance).
+     - `ui/components`: 4-Partition state (`Raw Data`, `View Control`, `Async Feedback`, `Derived State`) + UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero` with reset, `inline-error` with recovery guidance) + `NO-PASSWORD-POPUP-TRAP` (suppress Chrome password manager popup via `autoComplete="new-password"` or `type="text"` with `WebkitTextSecurity:'disc'` to prevent proctoring fullscreen exit) + 1-Click Role Switcher buttons (`[관리자 즉시 로그인]`, `[직원 즉시 로그인]`).
    - Requires `tabular-nums` for numeric stability, `single-flight` double-submit prevention, and race condition guards.
 
 ---
@@ -65,7 +65,7 @@ The loop detects and supports three task archetypes seamlessly:
 Built directly into `.cofa/cofa_verify.py`, the verifier enforces four architectural perspectives:
 - **Perspective 1 (`gate_lock`)**: Frozen verification table lock (`gate_frozen: true`). Prevents removing frozen `BC-*` checks or skipping them via `SKIP`/`N/A` (No Skip-with-Reason Escape).
 - **Perspective 2 (`structure_wiring`)**: Live entrypoint reachability (`CODE-WIRING-B1`). Ensures every non-entrypoint module or parser is imported and wired into the application flow (zero orphaned modules).
-- **Perspective 3 (`ontology_contract`)**: Enforces header-name mapping contracts on CSV parsers and forbids `window.alert()` in UI components.
+- **Perspective 3 (`ontology_contract`)**: Enforces header-name mapping contracts on CSV parsers, forbids `window.alert()` in UI components, and enforces Chrome password manager popup suppression (`NO-PASSWORD-POPUP-TRAP`) to prevent proctoring fullscreen-exit penalties.
 - **Perspective 4 (`traceability_dag`)**: Verifies complete DAG edges from requirements (`source` + `description`) to code (`code_refs`) to tests (`test_cmd` / `live_probe`) to architecture decisions (`decision_and_rationale`).
 
 ---
