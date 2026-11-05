@@ -87,5 +87,26 @@
   ],
   "known_limitations": [
     "<Populated during implementation: honest trade-offs and remaining limitations for submission doc & 사후 Q&A>"
-  ]
+  ],
+  "qa_briefing": {
+    "ui_state_strategy": {
+      "components_and_files": [],
+      "state_structure": "<Populated during build/Checkpoint 2: How UI states (data, filter/view, loading/empty/error) are structured>",
+      "rationale": "<Why this state design was chosen (e.g., derived state, single source of truth, preventing state drift)>"
+    },
+    "data_error_handling": {
+      "files_and_functions": [],
+      "anomalies_handled": "<Populated during build/Checkpoint 2: Missing values, malformed CSV rows, invalid types, outliers>",
+      "handling_mechanism_and_rationale": "<How errors are isolated/quarantined/defaulted or surfaced in UI without crashing or Safe-But-Wrong masking, and why>"
+    },
+    "review_agent_records": [
+      {
+        "agent": "luna_checker | architect",
+        "target": "<Checked feature / rubric / file>",
+        "judgment": "<PASS / WATCH / BLOCK / score>",
+        "why_judged_this_way": "<Exact reason WHY the review agent made this judgment>",
+        "resolution_or_tradeoff": "<How it was fixed in code or accepted as a trade-off>"
+      }
+    ]
+  }
 }

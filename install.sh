@@ -105,7 +105,7 @@ if command -v codex >/dev/null 2>&1; then
 fi
 
 # 3. Install Skills (to ~/.codex/skills, ~/.agents/skills, and ${TARGET_DIR}/.agents/skills)
-SKILLS=("cofa-loop-graph" "grill-me" "to-questionnaire" "sharpen" "verification-before-completion" "evaluate")
+SKILLS=("cofa-loop-graph" "grill-me" "to-questionnaire" "sharpen" "verification-before-completion" "evaluate" "qa-briefing")
 CODEX_SKILLS_DIR="${CODEX_HOME}/skills"
 GLOBAL_SKILLS_DIR="${GLOBAL_SKILLS_DIR:-${HOME}/.agents/skills}"
 LOCAL_SKILLS_DIR="${TARGET_DIR}/.agents/skills"
@@ -124,7 +124,7 @@ for skill in "${SKILLS[@]}"; do
     done
 done
 
-echo "✓ Installed 6 skills to ${CODEX_SKILLS_DIR}, ${GLOBAL_SKILLS_DIR}, and ${LOCAL_SKILLS_DIR}"
+echo "✓ Installed 7 skills to ${CODEX_SKILLS_DIR}, ${GLOBAL_SKILLS_DIR}, and ${LOCAL_SKILLS_DIR}"
 
 # 4. Install .cofa verification suite and helper scripts
 COFA_DIR="${TARGET_DIR}/.cofa"

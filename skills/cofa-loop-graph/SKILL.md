@@ -129,10 +129,15 @@ For each vertical slice (e.g., Slice 1: End-to-End Core Flow, Slice 2: Edge-Case
 4. **Fast System-1 Check with `luna_checker` (`6.0 Luna`)**:
    - Verify affected `binary_checks` and `qualitative_rubrics`.
    - Ensure corrupt inputs do not silently mask errors (Safe-But-Wrong check).
-5. **Log Decision in `.cofa/decisions.tsv`**:
-   ```bash
-   bash .cofa/log_decision.sh "<phase>" "<decision>" "<why_and_rejected_alt>" "<evidence>" "<result>"
-   ```
+   - Capture `luna_checker`'s judgment rationale (`judgment_reason_kr`) into `.cofa/trace.json` (`qa_briefing.review_agent_records`).
+5. **Log Decision in `.cofa/decisions.tsv` & Update `qa_briefing`**:
+   - Log design decision:
+     ```bash
+     bash .cofa/log_decision.sh "<phase>" "<decision>" "<why_and_rejected_alt>" "<evidence>" "<result>"
+     ```
+   - Progressively update `.cofa/trace.json` (`qa_briefing`):
+     - `ui_state_strategy`: Document frontend component state partitioning (data source, view filter/sort, async feedback, derived states) and design rationales.
+     - `data_error_handling`: Document CSV/data parsers, handled anomalies (missing values, format errors, type mismatch, outliers, duplicates), and Safe-But-Wrong avoidance logic.
 6. **Slot Clean-Up**:
    - Call `close_agent` on the completed `executor` or `luna_checker` instance.
 
@@ -142,22 +147,32 @@ For each vertical slice (e.g., Slice 1: End-to-End Core Flow, Slice 2: Edge-Case
 
 At 25 minutes before submission, transition from active feature coding to verification, documentation fidelity, and defense preparation.
 
-1. **Run Full Level-2 Verification**:
-   ```bash
-   python3 .cofa/cofa_verify.py --run-tests --luna --cheatsheet
-   ```
-   *(Add `--live` if `has_web_server: true` and server is running).*
+1. **Dispatch `architect` (`6.1 Sol`)**:
+   - Run `architect` in read-only mode for the 2-Axis Audit:
+     - Axis 1: Spec compliance, safe-but-wrong prevention, and 1:1 code-to-document fidelity.
+     - Axis 2: Closed-set defect mechanisms (`condition`, `state`, `dataFlow`, `asyncControl`, `cleanup`, `concurrency`, `recovery`, `crash`, `dataFormat`, `testGap`).
+   - `architect` generates `review_summary_kr` covering audit findings with rationales, UI component state architecture, and Data/CSV error handling.
+   - Record architect's findings into `.cofa/trace.json` (`qa_briefing`).
 2. **Verify Submission Document Fidelity (`[BASE-3] CODE-DOC-FIDELITY`)**:
    - Ensure the submission document (e.g., `REPORT.md` or `README.md`) contains:
      - `선택한 판단과 근거` (Key architectural choices and rationale)
      - `검증 결과` (Actual test pass rates, live latency metrics, and probe outcomes)
      - `남은 한계` (Honest trade-offs and remaining limitations)
-3. **Dispatch `architect` (`6.1 Sol`)**:
-   - Run `architect` in read-only mode for the 2-Axis Audit:
-     - Axis 1: Spec compliance, safe-but-wrong prevention, and 1:1 code-to-document fidelity.
-     - Axis 2: Closed-set defect mechanisms (`condition`, `state`, `dataFlow`, `asyncControl`, `cleanup`, `concurrency`, `recovery`, `crash`, `dataFormat`, `testGap`).
-4. **Study the Cheatsheet**:
-   - Review the printed output of `python3 .cofa/cofa_verify.py --cheatsheet` (including logged decisions from `.cofa/decisions.tsv`) to prepare for the no-AI written Q&A (`사후 Q&A`).
+3. **Run Full Level-2 Verification & Defense Briefing**:
+   ```bash
+   python3 .cofa/cofa_verify.py --run-tests --luna --cheatsheet
+   ```
+   *(Add `--live` if `has_web_server: true` and server is running).*
+4. **Deliver Korean 4-Part Post-Submission Written Q&A Final Briefing**:
+   - When Checkpoint 2 completes (or upon running `$qa-briefing`), the orchestrator MUST print the comprehensive Korean 4-Part Briefing (`[사후 서술형 Q&A 대비 최종 브리핑]`) directly in chat:
+     1. **UI 컴포넌트 상태 설계 전략 요약 (`ui_state_strategy`)**:
+        - Component list, 4-tier state partitioning (원본 데이터 상태, 뷰 제어 상태, 비동기 피드백 상태, 파생 상태), and design rationales (Single Source of Truth, preventing state drift).
+     2. **데이터(CSV/입력) 오류 및 예외 핸들링 방법 요약 (`data_error_handling`)**:
+        - File & function citations, anomaly handling (결측치, 형식 오류, 타입 불일치, 이상치, 중복), Safe-But-Wrong avoidance rationale, and UI inline error feedback.
+     3. **검수 에이전트(luna_checker & architect) 기록 및 판정 이유 요약 (`review_agent_records`)**:
+        - Summary of all checks, verdicts, and explicit reasons WHY each review agent judged items that way (`judgment_reason_kr` / `why_judged_this_way`).
+     4. **핵심 아키텍처 결정, 업무 담당자 우선순위 및 과설계 배제/한계점 요약**:
+        - Architectural decisions and trade-offs, Scenario Agent DM confirmed rules, anti-over-engineering justifications, and honest remaining limitations.
 
 ---
 

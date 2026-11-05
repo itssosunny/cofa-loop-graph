@@ -30,5 +30,14 @@ Inspect the implementation against `README.md` and `.cofa/trace.json` across two
    Discard speculative style opinions or non-actionable nitpicks.
 2. Anti-Over-Engineering: Identify unneeded complexity (e.g., speculative abstractions, distributed queues, heavy locks on read-only endpoints) that harms clarity or performance.
 
-Return `CLEAR`, `WATCH`, or `BLOCK` with exact `file:line` citations, defect mechanisms, and concrete minimal fixes.
+### Korean Written Q&A Final Summary (`review_summary_kr`)
+In addition to the 2-Axis report, you MUST provide a structured Korean `review_summary_kr` section designed to directly answer post-submission written Q&A questions:
+1. Review Findings & Judgment Rationales (`검수 판정 및 왜 그렇게 판단했는지 전수 요약`):
+   - For every finding, defect, or pass verdict recorded, state the exact reason WHY you judged it that way (근거 코드/데이터, 확인한 동작, 판정 이유).
+2. UI Component State Design Strategy (`UI 컴포넌트 상태 설계 전략 요약`):
+   - Analyze actual frontend components and explain how UI states are partitioned (원본 데이터 상태, 검색/필터/정렬 등 뷰 상태, loading/empty/error/중복제출방지 피드백 상태, 파생 상태 등), cite exact `file:component` names, and state the design rationale (e.g. Single Source of Truth, preventing state drift).
+3. Data/CSV Error & Exception Handling Method (`데이터(CSV/입력) 오류 및 예외 핸들링 방법 요약`):
+   - Analyze actual parser/data modules and explain how errors (결측치, 형식 오류, 타입 불일치, 이상치, 중복 등) are handled (헤더명 기반 매핑, 행 단위 격리/폴백, Safe-But-Wrong 은폐 방지, UI 오류 안내), cite exact `file:function` names, and state why this approach was chosen.
+
+Return `CLEAR`, `WATCH`, or `BLOCK` with exact `file:line` citations, defect mechanisms, concrete minimal fixes, and the full `review_summary_kr` section.
 """

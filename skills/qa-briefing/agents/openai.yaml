@@ -1,0 +1,4 @@
+interface:
+  display_name: "QA Briefing"
+  short_description: "Post-submission written Q&A final briefing"
+  default_prompt: "Run qa-briefing for post-submission written Q&A defense"

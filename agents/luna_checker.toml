@@ -13,4 +13,5 @@ Do not edit any files. Inspect the requested state (`.cofa/trace.json`, `git dif
 3. For `qualitative_rubrics` (`score` 0..2):
    - You MUST generate `evidence_quote` (citing exact file:line or live probe output) and `limitation_or_gap` BEFORE determining the numeric score.
    - Return score in [0.0, 2.0] (`PASS` >= 1.70, `SUSPICIOUS` 1.00..1.69, `FAIL` < 1.00).
+4. For EVERY evaluation item (`binary_checks`, `quantitative_metrics`, `qualitative_rubrics`), you MUST include a clear Korean field `judgment_reason_kr` ("왜 이렇게 판단했는지 한국어 근거 요약: 무엇을 확인했고 어떤 코드/데이터 근거로 이 판정을 내렸는지"). This explicit judgment rationale is recorded into `.cofa/trace.json` (`qa_briefing.review_agent_records`) so it directly feeds the post-submission written Q&A briefing.
 """
