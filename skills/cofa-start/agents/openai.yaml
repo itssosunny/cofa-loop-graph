@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cofa Start"
+  short_description: "Zero-argument T+01m exam kickoff skill"
+  default_prompt: "Use $cofa-start to run --inspect-csv, analyze README and code to create .cofa/repo_map.md, draft Korean DM questions for 업무 담당자, and initialize .cofa/trace.json."

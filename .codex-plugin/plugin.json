@@ -31,9 +31,9 @@
       "Workflow"
     ],
     "defaultPrompt": [
-      "Run cofa-loop-graph Checkpoint 1 on this workspace.",
-      "Use to-questionnaire to draft progressive questions for domain stakeholders.",
-      "Run grill-me for a 1-round frontier alignment."
+      "$cofa-start",
+      "$cofa-loop-graph",
+      "$qa-briefing"
     ],
     "brandColor": "#0F766E",
     "screenshots": []

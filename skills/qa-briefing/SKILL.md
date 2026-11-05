@@ -15,6 +15,27 @@ In the hackathon evaluation, candidates face a no-AI written Q&A exam (`사후 �
 
 ---
 
+## Immediate Execution Rule (Zero Arguments Required)
+
+When the user invokes `$qa-briefing` (even with zero additional text or arguments), **DO NOT ask what to do or wait for further input**. Immediately:
+1. Inspect the workspace source files, `.cofa/trace.json`, `.cofa/decisions.tsv`, and all `luna_checker` / `architect` review records.
+2. Update `.cofa/trace.json` (`qa_briefing` section) with concrete component names, error handling functions, and review findings.
+3. Run:
+   ```bash
+   python3 .cofa/cofa_verify.py --cheatsheet
+   ```
+4. Output the complete **Korean 4-Part Post-Submission Written Q&A Final Briefing** directly into chat:
+   - **1. UI 컴포넌트 상태 설계 전략 요약 (`ui_state_strategy`)**:
+     구현된 컴포넌트/파일명 + 4분할 상태 구조 (데이터 원본 상태, 뷰 제어 상태, 비동기 피드백 상태, 파생 상태) + 왜 그렇게 설계했는지 설계 근거.
+   - **2. 데이터(CSV/입력) 오류 및 예외 핸들링 방법 요약 (`data_error_handling`)**:
+     구현된 파서/함수명 + 결측치/형식오류/타입불일치/이상치/중복 처리 방식 + Safe-But-Wrong 방지 근거.
+   - **3. 검수 에이전트(luna_checker / architect)가 남긴 모든 기록 & 왜 그렇게 판단했는지 전수 요약 (`review_agent_records`)**:
+     모든 검수 판정 내역 + 왜 그렇게 판단했는지 이유 (`judgment_reason_kr` / `why_judged_this_way`) + 코드 반영/트레이드오프 결과.
+   - **4. 핵심 아키텍처 결정 · 업무 담당자 DM 반영 내역 · 과설계 배제 · 남은 한계 요약**:
+     아키텍처 결정 및 근거, `업무 담당자` DM 우선순위 규칙, 과설계 배제 사유 (`rejected_over_engineering`), 솔직한 남은 한계점 (`known_limitations`).
+
+---
+
 ## 1. When to Invoke
 
 - **Automatically**: At Checkpoint 2 (`T+150m..175m`) of `$cofa-loop-graph`.

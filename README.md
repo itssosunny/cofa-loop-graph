@@ -11,7 +11,7 @@ Complies with the official OpenAI Codex Plugin specification, Agent Plugins 1.0 
 ## Quick Start (Two Installation Methods)
 
 ### Method A: Automated All-in-One Install (Recommended for Exam Workspace)
-Registers subagents into `~/.codex/agents/`, enables `multi_agent = true` in `~/.codex/config.toml`, copies all 7 skills to global/local paths, registers the plugin via `codex plugin`, and initializes `.cofa/` verifier scripts:
+Registers subagents into `~/.codex/agents/`, enables `multi_agent = true` in `~/.codex/config.toml`, copies all 8 skills to global/local paths, registers the plugin via `codex plugin`, and initializes `.cofa/` verifier scripts:
 
 ```bash
 git clone https://github.com/itssosunny/cofa-loop-graph.git /tmp/cofa-plugin && bash /tmp/cofa-plugin/install.sh .
@@ -85,10 +85,16 @@ cofa-loop-graph/
 │   ├── executor.toml                        # 5.6 Terra worker (workspace-write, 3-hypothesis debugging, safe-but-wrong prevention)
 │   ├── luna_checker.toml                    # 6.0 Luna evaluator (read-only, evidence-before-score, safe-but-wrong checks)
 │   └── architect.toml                       # 6.1 Sol auditor (read-only, 2-axis review: Spec/Fidelity + Closed-set defect mechanisms)
-├── skills/                                  # 7 Portable Workflow Skills (with agents/openai.yaml)
+├── skills/                                  # 8 Portable Workflow Skills (with agents/openai.yaml)
+│   ├── cofa-start/
+│   │   ├── SKILL.md                         # Zero-argument T+01m exam kickoff ($cofa-start)
+│   │   └── agents/openai.yaml
 │   ├── cofa-loop-graph/
 │   │   ├── SKILL.md                         # 180m operating loop (Archetype detection, Checkpoint 1, Slicing, Checkpoint 2)
 │   │   └── agents/openai.yaml               # Codex skill presentation metadata
+│   ├── qa-briefing/
+│   │   ├── SKILL.md                         # Zero-argument T+160m Korean 4-Part Q&A Final Briefing ($qa-briefing)
+│   │   └── agents/openai.yaml
 │   ├── grill-me/
 │   │   ├── SKILL.md                         # 5-line inverted restate + {root, first_nail} + 1-Round Frontier grill
 │   │   └── agents/openai.yaml
@@ -101,11 +107,8 @@ cofa-loop-graph/
 │   ├── verification-before-completion/
 │   │   ├── SKILL.md                         # Iron Law: fresh evidence before claims (no git push)
 │   │   └── agents/openai.yaml
-│   ├── evaluate/
-│   │   ├── SKILL.md                         # System-1 calibrated evaluation with 6.0 Luna (noul/choice/score/items)
-│   │   └── agents/openai.yaml
-│   └── qa-briefing/
-│       ├── SKILL.md                         # Korean 4-Part Post-Submission Written Q&A Final Briefing
+│   └── evaluate/
+│       ├── SKILL.md                         # System-1 calibrated evaluation with 6.0 Luna (noul/choice/score/items)
 │       └── agents/openai.yaml
 ├── .cofa/
 │   ├── cofa_verify.py                       # Level-2 verifier (BASE guards, test-cheating detection, BC, QM, QR, cheatsheet)
@@ -113,7 +116,7 @@ cofa-loop-graph/
 │   ├── with_server.py                       # Process group server wrapper with guaranteed TCP wait and SIGKILL cleanup
 │   ├── log_decision.sh                      # UTC ISO-8601 decision logger for .cofa/decisions.tsv
 │   └── trace.template.json                  # Template schema for .cofa/trace.json
-├── install.sh                               # Automated installer with subagents, 7 skills, and [mcp_servers.evaluate] wiring
+├── install.sh                               # Automated installer with subagents, 8 skills, and [mcp_servers.evaluate] wiring
 └── README.md
 ```
 
@@ -130,16 +133,17 @@ Installed into `~/.codex/agents/` and registered under `[agents.<name>]` in `~/.
 | **`luna_checker`** | `gpt-6-luna` | `read-only` | System-1 fast evaluator citing `evidence_quote` and `limitation_or_gap` before assigning score. |
 | **`architect`** | `gpt-6.1-sol` | `read-only` | System-2 independent auditor checking 2 axes: (1) Spec, Safe-But-Wrong & Fidelity, (2) Closed-Set Defect Mechanisms. |
 
-### 2. Seven Workflow Skills (`skills/*`)
+### 2. Eight Workflow Skills (`skills/*`)
 Each skill includes a validated `SKILL.md` and `agents/openai.yaml`:
 
-1. **`cofa-loop-graph`**: Integrated 180-minute operating loop connecting Checkpoint 1, vertical slice execution, and Checkpoint 2.
-2. **`grill-me`**: 5-line inverted restate + `{ root, first_nail }` check + 1-round fast Frontier interview.
-3. **`to-questionnaire`**: Formulates progressive, high-context questions for the Scenario Agent (`업무 담당자`) DM (never asks `"1, 2, 3, 4로 할 일 알려주세요"`).
-4. **`sharpen`**: Anti-over-engineering rulebook (`NO-OVER-ENGINEERING`) ensuring minimal necessary abstractions and outcome-driven delivery.
-5. **`verification-before-completion`**: Strict verification gate requiring fresh command execution output before making completion claims or committing.
-6. **`evaluate`**: System-1 calibrated evaluation of observable evidence (`state`) using `6.0 Luna` (`gpt-6-luna`), supporting `noul`, `choice`, `score`, and `items`.
-7. **`qa-briefing`**: Post-submission written Q&A final briefing (`[사후 서술형 Q&A 대비 최종 브리핑]`) covering UI component state architecture, data/CSV error handling, review agent records with rationales, and core architecture decisions.
+1. **`$cofa-start`**: **Zero-argument T+01m exam kickoff trigger**. Immediately runs `--inspect-csv`, generates `.cofa/repo_map.md`, drafts Korean DM questions for `업무 담당자`, initializes `.cofa/trace.json`, and outputs the 1-round Frontier grill.
+2. **`$qa-briefing`**: **Zero-argument T+160m exam defense trigger**. Immediately inspects workspace code, updates `.cofa/trace.json`, runs `--cheatsheet`, and outputs the complete 4-part Korean briefing (`[사후 서술형 Q&A 대비 최종 브리핑]`).
+3. **`cofa-loop-graph`**: Integrated 180-minute operating loop connecting Checkpoint 1, vertical slice execution, and Checkpoint 2.
+4. **`grill-me`**: 5-line inverted restate + `{ root, first_nail }` check + 1-round fast Frontier interview.
+5. **`to-questionnaire`**: Formulates progressive, high-context questions for the Scenario Agent (`업무 담당자`) DM (never asks `"1, 2, 3, 4로 할 일 알려주세요"`).
+6. **`sharpen`**: Anti-over-engineering rulebook (`NO-OVER-ENGINEERING`) ensuring minimal necessary abstractions and outcome-driven delivery.
+7. **`verification-before-completion`**: Strict verification gate requiring fresh command execution output before making completion claims or committing.
+8. **`evaluate`**: System-1 calibrated evaluation of observable evidence (`state`) using `6.0 Luna` (`gpt-6-luna`), supporting `noul`, `choice`, `score`, and `items`.
 
 ### 3. Dual-Mode `evaluate` MCP Server & CLI Runner (`.cofa/luna_mcp.py`)
 100% Python 3 Standard Library MCP server and standalone evaluation tool powered by `6.0 Luna` (`gpt-6-luna`):
@@ -175,23 +179,22 @@ Each skill includes a validated `SKILL.md` and `agents/openai.yaml`:
 ```
 [T+00m..02m] Plugin Installation (Method A or B)
      │
-[T+02m..15m] Checkpoint 1: 2-Step Cofa-Grill
-     │       • Step 1A: Archetype detection (Data/API/Web) + 25-line .cofa/repo_map.md + DM questions
-     │       • Step 1B: 1-Round Frontier grill (restate + root/first_nail) to lock MVP flow & trace.json
-     │       • Log baseline: bash .cofa/log_decision.sh "T+15m" "Lock MVP" "..." "..." "PASS"
+[T+02m..15m] Checkpoint 1: $cofa-start (Zero-Argument Instant Kickoff)
+     │       • python3 .cofa/cofa_verify.py --inspect-csv (headers, nulls, types, duplicates)
+     │       • 25-line .cofa/repo_map.md + Scenario Agent DM questions
+     │       • 1-Round Frontier grill to lock MVP flow & trace.json (gate_frozen: true)
      │
-[T+15m..150m] Build Loop: Tracer-Bullet Vertical Slices
+[T+15m..150m] Build Loop: Tracer-Bullet Vertical Slices & 4-Layer Separation
      │       • Delegate slices to executor (5.6 Terra) with fork_context: false
-     │       • Server tasks: python3 .cofa/with_server.py --server "..." --port ... -- python3 .cofa/cofa_verify.py --run-tests --live
-     │       • Data tasks: python3 .cofa/cofa_verify.py --run-tests
-     │       • Check: luna_checker (6.0 Luna)
-     │       • Log decisions to .cofa/decisions.tsv
+     │       • Enforce CODE-WIRING-B1 (every module wired into entrypoint)
+     │       • Verify: python3 .cofa/cofa_verify.py --run-tests --live (all 4 Graph Perspectives)
+     │       • System-1 Check: luna_checker (6.0 Luna)
      │       • Slot cleanup: close_agent on completed instances
      │
-[T+150m..175m] Checkpoint 2: Pre-Submission Verification & Defense
+[T+150m..175m] Checkpoint 2: $qa-briefing (Zero-Argument Defense Briefing)
      │       • python3 .cofa/cofa_verify.py --run-tests --luna --cheatsheet
-     │       • Run architect (6.1 Sol) for 2-axis review (Spec/Fidelity + Closed-set defect mechanisms)
-     │       • Review cheatsheet & deliver Korean 4-part briefing for 사후 Q&A
+     │       • System-2 Audit: architect (6.1 Sol) 2-axis review
+     │       • Complete 4-Part Korean Post-Submission Q&A Briefing printed directly in chat
      │
 [T+175m..180m] Final Local Commit
              • git add -A && git commit -m "..."

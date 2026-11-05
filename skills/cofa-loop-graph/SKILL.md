@@ -44,6 +44,8 @@ The operating loop coordinates 3 recommended models to optimize speed, accuracy,
 
 ## 2. Checkpoint 1 (`T+02m..15m`) — `2-Step Cofa-Grill` (Unified Planning Gate)
 
+> 💡 **Instant Kickoff Trigger**: Typing `$cofa-start` with zero arguments immediately runs this entire sequence (CSV anomaly inspection, repo map, DM question formulation, and trace.json initialization).
+
 Spend the first 15 minutes establishing exact requirements, uncovering data anomalies, preventing over-engineering, and locking `.cofa/trace.json` (`gate_frozen: true`).
 
 ### Step 1A (`T+02m..06m`): CSV Inspection, Archetype Detection, Fact Scan & DM Questions
@@ -154,6 +156,8 @@ For each vertical slice (e.g., Slice 1: End-to-End Core Flow, Slice 2: Edge-Case
 ---
 
 ## 4. Checkpoint 2 (`T+150m..175m`) — Pre-Submission & `사후 Q&A` Defense
+
+> 💡 **Instant Defense Trigger**: Typing `$qa-briefing` with zero arguments immediately runs this inspection, executes `--cheatsheet`, and outputs the complete 4-part Korean briefing.
 
 At 25 minutes before submission, transition from active feature coding to verification, documentation fidelity, and defense preparation.
 
