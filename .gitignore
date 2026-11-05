@@ -18,6 +18,7 @@ Thumbs.db
 .cofa/trace.json
 .cofa/decisions.tsv
 .cofa/repo_map.md
+.cofa/.frozen_bcs.json
 
 # Ensure critical template and verifier files are always tracked
 !.cofa/trace.template.json

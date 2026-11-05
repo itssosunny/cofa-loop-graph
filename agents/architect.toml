@@ -30,6 +30,13 @@ Inspect the implementation against `README.md` and `.cofa/trace.json` across two
    Discard speculative style opinions or non-actionable nitpicks.
 2. Anti-Over-Engineering: Identify unneeded complexity (e.g., speculative abstractions, distributed queues, heavy locks on read-only endpoints) that harms clarity or performance.
 
+### 4-Perspective Graph Audit
+Audit the 4 verification perspectives evaluated by `.cofa/cofa_verify.py`:
+1. Perspective 1 (`gate_lock`): Ensure no frozen `BC-*` checks were removed, commented out, or marked `SKIP`/`N/A` from `.cofa/trace.json`.
+2. Perspective 2 (`structure_wiring`): Ensure `CODE-WIRING-B1` is honored: every non-entrypoint module, parser, or component is imported and wired into the live application flow.
+3. Perspective 3 (`ontology_contract`): Ensure data parsers map columns by header name rather than hardcoded numeric indices, and ensure UI components avoid `window.alert()` in favor of 5-state inline feedback.
+4. Perspective 4 (`traceability_dag`): Verify complete DAG edges from requirements (`source` + `description`) to code (`code_refs`) to tests (`test_cmd` / `live_probe`) to architecture decisions (`decision_and_rationale`).
+
 ### Korean Written Q&A Final Summary (`review_summary_kr`)
 In addition to the 2-Axis report, you MUST provide a structured Korean `review_summary_kr` section designed to directly answer post-submission written Q&A questions:
 1. Review Findings & Judgment Rationales (`검수 판정 및 왜 그렇게 판단했는지 전수 요약`):

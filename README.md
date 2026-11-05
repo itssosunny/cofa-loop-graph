@@ -49,10 +49,24 @@ The loop detects and supports three task archetypes seamlessly:
    - Web server enabled (`"has_web_server": true`). Enforces `0.0.0.0` host binding.
    - Automated server management via `.cofa/with_server.py` with guaranteed process group cleanup (no zombie servers).
    - Validates HTTP response status codes, latency thresholds, and input validation.
-3. **Archetype C: Full-Stack / Frontend Web App**:
+3. **Archetype C: Full-Stack / Frontend Web App (4-Layer Web Architecture `[BC-C1]`)**:
    - Web server enabled (`"has_web_server": true`).
-   - Requires explicit `loading`, `empty`, `inline-error` (no `window.alert()`), and `focus/hover` states.
+   - Strict 4-Layer Separation:
+     - `data/parser`: Header-name mapping (never numeric indices) + row error quarantine + zero Safe-But-Wrong masking.
+     - `domain/model`: Pure business logic, filtering, aggregations (derived state; never duplicated in mutable state).
+     - `api/server`: `0.0.0.0` routes returning structured data + anomaly metadata.
+     - `ui/components`: 4-Partition state (`Raw Data`, `View Control`, `Async Feedback`, `Derived State`) + UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero` with reset, `inline-error` with recovery guidance).
    - Requires `tabular-nums` for numeric stability, `single-flight` double-submit prevention, and race condition guards.
+
+---
+
+## 4-Perspective Graph Verification
+
+Built directly into `.cofa/cofa_verify.py`, the verifier enforces four architectural perspectives:
+- **Perspective 1 (`gate_lock`)**: Frozen verification table lock (`gate_frozen: true`). Prevents removing frozen `BC-*` checks or skipping them via `SKIP`/`N/A` (No Skip-with-Reason Escape).
+- **Perspective 2 (`structure_wiring`)**: Live entrypoint reachability (`CODE-WIRING-B1`). Ensures every non-entrypoint module or parser is imported and wired into the application flow (zero orphaned modules).
+- **Perspective 3 (`ontology_contract`)**: Enforces header-name mapping contracts on CSV parsers and forbids `window.alert()` in UI components.
+- **Perspective 4 (`traceability_dag`)**: Verifies complete DAG edges from requirements (`source` + `description`) to code (`code_refs`) to tests (`test_cmd` / `live_probe`) to architecture decisions (`decision_and_rationale`).
 
 ---
 
@@ -144,10 +158,12 @@ Each skill includes a validated `SKILL.md` and `agents/openai.yaml`:
 - **`[BASE-1] ZERO-STUB & NO-TEST-CHEATING`**: Fails on no-op handlers (`onClick={() => {}}`), `TODO`/`FIXME`, `[DEBUG-*]` leftovers, or test-cheating markers (`.skip`, `.only`, `.todo`, `@pytest.mark.skip`).
 - **`[BASE-2] HOST-BIND-0000`**: Conditional on `has_web_server: true`. Ensures web servers bind to `0.0.0.0:<PORT>`.
 - **`[BASE-3] CODE-DOC-FIDELITY`**: Ensures cited submission documents exist and are non-empty.
+- **CSV Data Anomaly Scanner (`--inspect-csv`)**: Scans all workspace CSV files for row/column counts, missing cells, mixed numeric types, negative numbers, key column duplicates, and malformed rows; generates Scenario Agent DM questions.
+- **4-Perspective Graph Verification**: Deterministic checks enforcing P1 Frozen Table Lock (`gate_frozen: true`), P2 Live Entrypoint Wiring (`CODE-WIRING-B1`), P3 Data/UI Ontology Contracts, and P4 Traceability DAG completeness.
 - **Dynamic Binary Checks (`binary_checks[]`)**: Validates code traceability, detects test-masking anti-patterns (`| tail`, `|| true`), and fires live HTTP probes (`--live`).
 - **Dynamic Quantitative Metrics (`quantitative_metrics[]`)**: Measures latency and numeric thresholds against target values.
 - **Dynamic Qualitative Rubrics (`qualitative_rubrics[]`)**: Invokes `6.0 Luna` with anti-injection guards and evidence-first scoring.
-- **Pre-Submission Cheatsheet (`--cheatsheet`)**: Outputs the 4-part Korean briefing (`[사후 서술형 Q&A 대비 최종 브리핑]`) covering UI component states, data/CSV error handling, review agent records with rationales, and logged decisions.
+- **Pre-Submission Cheatsheet (`--cheatsheet`)**: Outputs the 4-part Korean briefing (`[사후 서술형 Q&A 대비 최종 브리핑]`) covering UI component states, data/CSV error handling (including discovered anomalies), review agent records with rationales, and logged decisions.
 - **`with_server.py`**: Runs tests against background servers with guaranteed TCP polling and process group SIGTERM/SIGKILL termination.
 - **`log_decision.sh`**: Records single-line sanitized decision records into `.cofa/decisions.tsv`.
 - **`luna_mcp.py`**: Evaluates `noul`, `choice`, `score`, and `items` over observable state.

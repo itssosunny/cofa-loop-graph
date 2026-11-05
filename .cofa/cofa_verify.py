@@ -7,6 +7,7 @@ Task-Type-Agnostic: Universal Core + Conditional Data/Pipeline Rules + Condition
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import re
@@ -17,7 +18,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 NOOP_HANDLER_RE = re.compile(
     r"\bon(?:Click|Submit|Change|Confirm|Delete|Save|Select)\s*=\s*\{\s*\(\s*\)\s*=>\s*\{\s*\}\s*\}"
@@ -415,6 +416,407 @@ def evaluate_qualitative_rubrics_luna(
     return raw
 
 
+def inspect_workspace_csvs(root: Path) -> dict[str, Any]:
+    """Scans all *.csv files in the workspace (excluding ignore dirs).
+    Inspects:
+    - Row count and column headers (including whitespace/case/duplicate warnings).
+    - Missing/empty/NULL/NaN cell counts per column.
+    - Mixed-type / numeric parse anomalies (non-numeric in >70% numeric columns, negative values).
+    - Duplicate values in ID/key columns (ending in id, code, key, no).
+    - Malformed rows where column count != header count.
+    Returns structured dict with statistics and anomalies per CSV.
+    """
+    csv_results = []
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in IGNORE_DIRS]
+        for fname in filenames:
+            if fname.lower().endswith(".csv"):
+                csv_path = Path(dirpath) / fname
+                rel_path = csv_path.relative_to(root).as_posix()
+
+                try:
+                    with open(csv_path, "r", encoding="utf-8-sig", errors="replace") as f:
+                        reader = csv.reader(f)
+                        raw_headers = None
+                        for row in reader:
+                            if any(cell.strip() for cell in row):
+                                raw_headers = [c.strip() for c in row]
+                                break
+
+                        if raw_headers is None:
+                            csv_results.append({
+                                "path": rel_path,
+                                "row_count": 0,
+                                "column_count": 0,
+                                "headers": [],
+                                "anomalies": ["빈 CSV 파일 (헤더 없음)"],
+                                "dm_questions": [f"'{rel_path}' 파일이 비어 있습니다. 제공 데이터가 맞는지 확인이 필요합니다."],
+                            })
+                            continue
+
+                        header_warnings = []
+                        seen_headers = set()
+                        for h in raw_headers:
+                            if h in seen_headers:
+                                header_warnings.append(f"중복 헤더명 '{h}' 존재")
+                            seen_headers.add(h)
+                            if h != h.strip():
+                                header_warnings.append(f"헤더명 '{h}'에 불필요한 앞뒤 공백 포함")
+
+                        num_cols = len(raw_headers)
+                        rows_data = []
+                        malformed_rows = []
+                        row_idx = 1
+
+                        for row in reader:
+                            row_idx += 1
+                            if not any(cell.strip() for cell in row):
+                                continue
+                            if len(row) != num_cols:
+                                malformed_rows.append({
+                                    "row_number": row_idx,
+                                    "actual_cols": len(row),
+                                    "expected_cols": num_cols,
+                                })
+                            rows_data.append(row)
+
+                        total_rows = len(rows_data)
+                        col_stats = {}
+                        anomalies = []
+                        dm_questions = []
+
+                        if malformed_rows:
+                            anomalies.append(f"열 개수 불일치(형식 파손) 행 {len(malformed_rows)}건 발견 (예: {malformed_rows[0]['row_number']}행 예상 {num_cols}개 != 실제 {malformed_rows[0]['actual_cols']}개)")
+                            dm_questions.append(f"'{rel_path}' 일부 행의 컬럼 수가 헤더와 일치하지 않습니다. 해당 행을 무시(격리)하고 진행해도 될까요?")
+
+                        for col_idx, col_name in enumerate(raw_headers):
+                            missing_count = 0
+                            non_empty_values = []
+                            numeric_count = 0
+                            negative_count = 0
+                            non_numeric_samples = []
+
+                            is_id_col = bool(re.search(r"(?:^|.*[_\s-])(?:id|code|key|no|num)$", col_name, re.IGNORECASE))
+                            seen_ids = set()
+                            duplicate_ids = set()
+
+                            for row in rows_data:
+                                val = row[col_idx].strip() if col_idx < len(row) else ""
+                                val_lower = val.lower()
+                                if not val or val_lower in {"null", "none", "nan", "n/a", "na", "-"}:
+                                    missing_count += 1
+                                else:
+                                    non_empty_values.append(val)
+                                    cleaned_val = val.replace(",", "")
+                                    try:
+                                        num_val = float(cleaned_val)
+                                        numeric_count += 1
+                                        if num_val < 0:
+                                            negative_count += 1
+                                    except ValueError:
+                                        if len(non_numeric_samples) < 3:
+                                            non_numeric_samples.append(val)
+
+                                    if is_id_col:
+                                        if val in seen_ids:
+                                            duplicate_ids.add(val)
+                                        seen_ids.add(val)
+
+                            total_non_empty = len(non_empty_values)
+                            numeric_ratio = (numeric_count / total_non_empty) if total_non_empty > 0 else 0.0
+                            is_likely_numeric = (numeric_ratio >= 0.70)
+
+                            col_info = {
+                                "name": col_name,
+                                "missing_count": missing_count,
+                                "missing_ratio": round((missing_count / total_rows * 100), 1) if total_rows > 0 else 0,
+                                "is_likely_numeric": is_likely_numeric,
+                                "numeric_ratio": round(numeric_ratio, 2),
+                                "negative_count": negative_count,
+                                "is_id_col": is_id_col,
+                                "duplicate_count": len(duplicate_ids),
+                            }
+                            col_stats[col_name] = col_info
+
+                            if missing_count > 0:
+                                pct = round((missing_count / total_rows * 100), 1) if total_rows > 0 else 0
+                                anomalies.append(f"컬럼 '{col_name}': 결측치/빈값 {missing_count}건 ({pct}%)")
+                                if pct > 5:
+                                    dm_questions.append(f"'{col_name}' 컬럼에 {missing_count}건({pct}%)의 결측치가 있습니다. 기본값 대체, 해당 행 제외, 또는 오류 처리 중 어떤 정책을 적용해야 하나요?")
+
+                            if is_likely_numeric and len(non_numeric_samples) > 0:
+                                anomalies.append(f"컬럼 '{col_name}': 숫자형 컬럼에 비숫자 값 유입 (샘플: {', '.join(non_numeric_samples)})")
+                                dm_questions.append(f"'{col_name}' 컬럼이 대부분 숫자이지만 '{non_numeric_samples[0]}' 같은 비숫자 값이 유입됩니다. 유효하지 않은 값은 0/NaN으로 둘지, 행 단위 격리를 할지 확인 부탁드립니다.")
+
+                            if negative_count > 0 and any(k in col_name.lower() for k in ("price", "cost", "salary", "age", "count", "amount", "qty", "quantity")):
+                                anomalies.append(f"컬럼 '{col_name}': 음수 값 {negative_count}건 발견 (금액/수량 도메인 이상치 가능성)")
+                                dm_questions.append(f"'{col_name}' 컬럼에 음수 값({negative_count}건)이 포함되어 있습니다. 음수 데이터가 정상적인 환불/감소인지, 이상치로 무시해야 하는지 기준이 궁금합니다.")
+
+                            if duplicate_ids:
+                                dup_sample = list(duplicate_ids)[:3]
+                                anomalies.append(f"식별자 컬럼 '{col_name}': 중복 키 {len(duplicate_ids)}건 발견 (샘플: {', '.join(dup_sample)})")
+                                dm_questions.append(f"식별자 '{col_name}' 컬럼에 중복 데이터(예: {dup_sample[0]})가 있습니다. 중복 시 최신 행 유지, 중복 제거, 아니면 모두 개별 처리할지 확인 부탁드립니다.")
+
+                        if header_warnings:
+                            anomalies.extend(header_warnings)
+
+                        csv_results.append({
+                            "path": rel_path,
+                            "row_count": total_rows,
+                            "column_count": num_cols,
+                            "headers": raw_headers,
+                            "header_warnings": header_warnings,
+                            "malformed_rows_count": len(malformed_rows),
+                            "columns": col_stats,
+                            "anomalies": anomalies,
+                            "dm_questions": dm_questions,
+                        })
+                except Exception as exc:
+                    csv_results.append({
+                        "path": rel_path,
+                        "row_count": 0,
+                        "column_count": 0,
+                        "headers": [],
+                        "anomalies": [f"CSV 읽기 실패: {exc}"],
+                        "dm_questions": [f"'{rel_path}' 파일 인코딩 또는 파싱 오류가 발생했습니다. 형식 확인이 필요합니다."],
+                    })
+
+    return {
+        "csv_files": csv_results,
+        "total_csv_files": len(csv_results),
+        "has_anomalies": any(bool(f.get("anomalies")) for f in csv_results),
+    }
+
+
+def print_csv_inspection_summary(report: dict[str, Any]) -> None:
+    """Prints a structured Korean summary of CSV inspection results for DM questions & parser design."""
+    print("\n" + "=" * 76)
+    print("📊 [CSV 데이터 이상치 및 품질 정밀 진단] (CSV ANOMALY & QUALITY SCANNER)")
+    print("=" * 76)
+    files = report.get("csv_files", [])
+    if not files:
+        print("• 워크스페이스 내 CSV 파일 미검출 (Data/CSV 파일 없음)")
+        print("=" * 76 + "\n")
+        return
+
+    for f in files:
+        print(f"\n• 파일: {f['path']} (총 {f['row_count']}행, {f['column_count']}개 컬럼)")
+        print(f"  - 컬럼 목록: {', '.join(f.get('headers', []))}")
+        anoms = f.get("anomalies", [])
+        if anoms:
+            print("  - 발견된 이상치 및 결함 목록:")
+            for a in anoms:
+                print(f"    * {a}")
+        else:
+            print("  - ✓ 데이터 결함 없음 (정상 파싱 가능)")
+
+        dms = f.get("dm_questions", [])
+        if dms:
+            print("  - 💡 업무 담당자(Scenario Agent) DM 추천 질문:")
+            for idx, q in enumerate(dms, 1):
+                print(f"    {idx}) \"{q}\"")
+    print("=" * 76 + "\n")
+
+
+def evaluate_four_perspective_graph(root: Path, trace: dict[str, Any]) -> dict[str, Any]:
+    """Evaluates the 4-Perspective Graph:
+    - Perspective 1: gate_lock (Frozen Verification Table Lock / No Skip-with-Reason Escape)
+    - Perspective 2: structure_wiring (Live Entrypoint Reachability & Unwired Module Detection CODE-WIRING-B1)
+    - Perspective 3: ontology_contract (4-Layer Web & 5-State UI / CSV Header Mapping Contract)
+    - Perspective 4: traceability_dag (Requirements-to-Screen-to-Code-to-Test-to-Doc DAG)
+    """
+    bcs = trace.get("binary_checks", [])
+    is_template = any(str(bc.get("description", "")).startswith("<Populated") for bc in bcs) or any(str(bc.get("source", "")).startswith("<") for bc in bcs)
+    has_web_server = bool(trace.get("has_web_server", True))
+
+    p1_defects: list[dict[str, Any]] = []
+    p2_defects: list[dict[str, Any]] = []
+    p3_defects: list[dict[str, Any]] = []
+    p4_defects: list[dict[str, Any]] = []
+    p4_warnings: list[str] = []
+
+    # 1. Perspective 1: gate_lock
+    gate_frozen = bool(trace.get("gate_frozen", False))
+    frozen_file = root / ".cofa" / ".frozen_bcs.json"
+    current_bcs = [bc.get("id") for bc in bcs if bc.get("id")]
+
+    if gate_frozen:
+        if not current_bcs and not is_template:
+            p1_defects.append({
+                "rule": "P1-GATE-LOCK",
+                "id": "ALL",
+                "detail": "gate_frozen is True but binary_checks is empty."
+            })
+        elif not is_template:
+            if not frozen_file.exists():
+                try:
+                    frozen_file.parent.mkdir(parents=True, exist_ok=True)
+                    frozen_file.write_text(json.dumps({"frozen_bcs": current_bcs}, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
+            else:
+                try:
+                    data = json.loads(frozen_file.read_text(encoding="utf-8"))
+                    frozen_list = data.get("frozen_bcs", [])
+                    missing = set(frozen_list) - set(current_bcs)
+                    if missing:
+                        p1_defects.append({
+                            "rule": "P1-GATE-LOCK",
+                            "id": "GATE",
+                            "detail": f"Frozen verification check(s) removed: {sorted(missing)} (No Skip-with-Reason Escape)"
+                        })
+                except Exception:
+                    pass
+
+        for bc in bcs:
+            cid = bc.get("id", "BC")
+            status = str(bc.get("status", "")).strip().upper()
+            if status in {"SKIP", "SKIPPED", "N/A", "NA", "TODO"}:
+                p1_defects.append({
+                    "rule": "P1-GATE-LOCK",
+                    "id": cid,
+                    "detail": f"Check {cid} marked as '{status}' (No Skip-with-Reason Escape allowed when gate is frozen)."
+                })
+
+    # 2. Perspective 2: structure_wiring (CODE-WIRING-B1)
+    qa = trace.get("qa_briefing", {})
+    referenced_files = set()
+    for bc in bcs:
+        for r in bc.get("code_refs", []):
+            r_str = str(r).strip()
+            if r_str and not r_str.startswith("<"):
+                referenced_files.add(r_str.split(":")[0])
+
+    for f in qa.get("ui_state_strategy", {}).get("components_and_files", []):
+        f_str = str(f).strip()
+        if f_str and not f_str.startswith("<"):
+            referenced_files.add(f_str.split(":")[0])
+
+    for f in qa.get("data_error_handling", {}).get("files_and_functions", []):
+        f_str = str(f).strip()
+        if f_str and not f_str.startswith("<"):
+            referenced_files.add(f_str.split(":")[0])
+
+    all_source_files = list(iter_source_files(root))
+    source_texts: dict[Path, str] = {}
+    for sf in all_source_files:
+        try:
+            source_texts[sf] = sf.read_text(encoding="utf-8")
+        except Exception:
+            source_texts[sf] = ""
+
+    checked_files = []
+    for rel_path in sorted(referenced_files):
+        target = root / rel_path
+        checked_files.append(rel_path)
+        if not target.exists():
+            if not is_template:
+                p2_defects.append({
+                    "rule": "P2-MISSING-FILE",
+                    "id": rel_path,
+                    "detail": f"Referenced file not found on disk: {rel_path}"
+                })
+            continue
+
+        stem = target.stem.lower()
+        is_entrypoint = stem in {"app", "main", "index", "server", "page", "layout", "route"} or any(p in target.parts for p in ("pages", "app", "routes"))
+        is_test = "test" in rel_path.lower() or "spec" in rel_path.lower()
+        if not is_entrypoint and not is_test and not is_template:
+            module_name = target.stem
+            module_base = target.name
+            referenced_elsewhere = False
+            for sf, text in source_texts.items():
+                if sf.resolve() == target.resolve():
+                    continue
+                if module_name in text or module_base in text:
+                    referenced_elsewhere = True
+                    break
+            if not referenced_elsewhere and len(all_source_files) > 1:
+                p2_defects.append({
+                    "rule": "P2-UNWIRED-MODULE",
+                    "id": rel_path,
+                    "detail": f"Module '{rel_path}' is referenced in trace table/qa_briefing but is never imported or referenced in any entrypoint or source file (CODE-WIRING-B1 violation)."
+                })
+
+    # 3. Perspective 3: ontology_contract
+    data_files = [f for f in referenced_files if any(k in f.lower() for k in ("csv", "parse", "data", "loader", "ingest"))]
+    for df in data_files:
+        target = root / df
+        if target.exists() and target.is_file():
+            text = source_texts.get(target, "")
+            has_index_lookup = bool(re.search(r"\b(?:row|record|col|line|parts)\[\d+\]", text))
+            has_header_mapping = bool(re.search(r"\b(?:DictReader|header|columns|field|lower\(\)|strip\(\)|get\(|\.key)\b", text, re.IGNORECASE))
+            if has_index_lookup and not has_header_mapping:
+                p3_defects.append({
+                    "rule": "P3-DATA-ONTOLOGY",
+                    "id": df,
+                    "detail": f"Parser '{df}' uses fragile hardcoded numeric index lookups without header-name mapping."
+                })
+
+    if has_web_server:
+        ui_files = [f for f in referenced_files if any(f.endswith(ext) for ext in FRONTEND_EXTS)]
+        for uf in ui_files:
+            target = root / uf
+            if target.exists() and target.is_file():
+                text = source_texts.get(target, "")
+                if ALERT_STUB_RE.search(text):
+                    p3_defects.append({
+                        "rule": "P3-UI-ONTOLOGY",
+                        "id": uf,
+                        "detail": f"UI component '{uf}' uses window.alert() instead of 5-State inline-error feedback."
+                    })
+
+    # 4. Perspective 4: traceability_dag
+    for bc in bcs:
+        cid = bc.get("id", "BC")
+        src = str(bc.get("source", "")).strip()
+        desc = str(bc.get("description", "")).strip()
+        code_refs = bc.get("code_refs", [])
+        test_cmd = str(bc.get("test_cmd", "")).strip()
+        live_probe = bc.get("live_probe")
+        decision = str(bc.get("decision_and_rationale", "")).strip()
+
+        if is_template:
+            p4_warnings.append(f"{cid}: template placeholder active")
+            continue
+
+        if not src or not desc or src.startswith("<") or desc.startswith("<"):
+            p4_defects.append({
+                "rule": "P4-DAG-SPEC",
+                "id": cid,
+                "detail": f"{cid} has incomplete source or description in DAG."
+            })
+        if not code_refs:
+            p4_defects.append({
+                "rule": "P4-DAG-CODE",
+                "id": cid,
+                "detail": f"{cid} missing valid code_refs in DAG."
+            })
+        if not test_cmd and not live_probe:
+            p4_defects.append({
+                "rule": "P4-DAG-TEST",
+                "id": cid,
+                "detail": f"{cid} has neither test_cmd nor live_probe defined in DAG."
+            })
+        if not decision or decision.startswith("<"):
+            p4_defects.append({
+                "rule": "P4-DAG-DECISION",
+                "id": cid,
+                "detail": f"{cid} missing decision_and_rationale in DAG."
+            })
+
+    all_graph_defects = p1_defects + p2_defects + p3_defects + p4_defects
+    return {
+        "perspective_1_gate_lock": {"gate_frozen": gate_frozen, "defects": p1_defects},
+        "perspective_2_structure_wiring": {"checked_files": checked_files, "defects": p2_defects},
+        "perspective_3_ontology_contract": {"defects": p3_defects},
+        "perspective_4_traceability_dag": {"defects": p4_defects, "warnings": p4_warnings},
+        "defects": all_graph_defects,
+        "passed": len(all_graph_defects) == 0,
+    }
+
+
 def print_defense_cheatsheet(trace: dict[str, Any], root: Path, luna_result: Optional[dict[str, Any]] = None) -> None:
     """Prints a comprehensive Korean 4-part briefing for post-submission written Q&A defense."""
     print("\n" + "=" * 76)
@@ -482,6 +884,17 @@ def print_defense_cheatsheet(trace: dict[str, Any], root: Path, luna_result: Opt
     err_files = data_err.get("files_and_functions", []) or data_files
     anomalies = data_err.get("anomalies_handled", "")
     handling_mech = data_err.get("handling_mechanism_and_rationale", "")
+
+    csv_inspection = inspect_workspace_csvs(root)
+    if csv_inspection.get("csv_files"):
+        print("• 실제 발견된 CSV 파일 및 데이터 결함:")
+        for cf in csv_inspection["csv_files"]:
+            print(f"  - {cf['path']} ({cf['row_count']}행, {cf['column_count']}개 컬럼):")
+            if cf.get("anomalies"):
+                for anom in cf["anomalies"]:
+                    print(f"    * {anom}")
+            else:
+                print("    * 특이 이상치 없음 (정상 데이터)")
 
     print("• 관련 파일 및 함수:")
     if err_files:
@@ -616,9 +1029,17 @@ def main() -> int:
     parser.add_argument("--luna", action="store_true", help="Run 6.0 Luna rubric evaluation")
     parser.add_argument("--luna-model", default=os.environ.get("LUNA_MODEL_ID", "gpt-6-luna"))
     parser.add_argument("--cheatsheet", action="store_true", help="Print pre-submission Q&A summary")
+    parser.add_argument("--inspect-csv", action="store_true", help="Inspect all CSV files in workspace for anomalies and missing values")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
+
+    if args.inspect_csv:
+        csv_report = inspect_workspace_csvs(root)
+        print_csv_inspection_summary(csv_report)
+        if not (args.run_tests or args.live or args.luna or args.cheatsheet):
+            return 0
+
     trace_path = root / args.trace
     trace: dict[str, Any] = {}
     if trace_path.exists():
@@ -642,7 +1063,17 @@ def main() -> int:
     qm_results = evaluate_quantitative_metrics(root, trace, max_lat) if trace else []
     qm_defects = [r for r in qm_results if not r.get("passed", True)]
 
-    deterministic_failed = bool(base_defects or bc_defects or qm_defects)
+    graph_results = evaluate_four_perspective_graph(root, trace) if trace else {
+        "perspective_1_gate_lock": {"gate_frozen": False, "defects": []},
+        "perspective_2_structure_wiring": {"checked_files": [], "defects": []},
+        "perspective_3_ontology_contract": {"defects": []},
+        "perspective_4_traceability_dag": {"defects": [], "warnings": []},
+        "defects": [],
+        "passed": True,
+    }
+    graph_defects = graph_results.get("defects", [])
+
+    deterministic_failed = bool(base_defects or bc_defects or qm_defects or graph_defects)
     luna_result = (
         evaluate_qualitative_rubrics_luna(trace, observations, args.luna_model)
         if (trace and args.luna and not deterministic_failed)
@@ -653,13 +1084,14 @@ def main() -> int:
         "base_guard_defects": base_defects,
         "binary_check_defects": bc_defects,
         "quantitative_metrics": qm_results,
+        "four_perspective_graph": graph_results,
         "qualitative_rubrics_luna": luna_result,
     }
     print(json.dumps(report, ensure_ascii=False, indent=2))
     if args.cheatsheet:
         print_defense_cheatsheet(trace, root, luna_result)
 
-    has_error = bool(base_defects or bc_defects or qm_defects)
+    has_error = bool(base_defects or bc_defects or qm_defects or graph_defects)
     if luna_result and luna_result.get("verdict") == "FAIL":
         has_error = True
     return 1 if has_error else 0

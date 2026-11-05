@@ -42,65 +42,69 @@ The operating loop coordinates 3 recommended models to optimize speed, accuracy,
 
 ---
 
-## 2. Checkpoint 1 (`T+02m..15m`) — `2-Step Cofa-Grill`
+## 2. Checkpoint 1 (`T+02m..15m`) — `2-Step Cofa-Grill` (Unified Planning Gate)
 
-Spend the first 15 minutes establishing exact requirements, preventing over-engineering, and populating `.cofa/trace.json`.
+Spend the first 15 minutes establishing exact requirements, uncovering data anomalies, preventing over-engineering, and locking `.cofa/trace.json` (`gate_frozen: true`).
 
-### Step 1A (`T+02m..06m`): Archetype Detection, Fact Scan & DM Questions
+### Step 1A (`T+02m..06m`): CSV Inspection, Archetype Detection, Fact Scan & DM Questions
 Main session (`6.1 Sol`):
-1. **Detect Task Archetype**:
+1. **Run CSV Data Anomaly Inspection**:
+   ```bash
+   python3 .cofa/cofa_verify.py --inspect-csv
+   ```
+   Immediately uncover row counts, column headers, missing cells, mixed-type values, negative numbers, key column duplicates, and malformed rows across all workspace CSVs.
+2. **Detect Task Archetype**:
    - **Archetype A: Data / Pipeline / ML / CLI**: No web server (`"has_web_server": false`). Focus on data parsing, schemas, numeric precision, and safe-but-wrong output prevention.
    - **Archetype B: Backend API / Microservice**: Web server (`"has_web_server": true`). Focus on `0.0.0.0` host binding, HTTP status codes, edge validation, and latency.
-   - **Archetype C: Full-Stack / Frontend Web App**: Web server (`"has_web_server": true`). Focus on `0.0.0.0` binding, UI states (`loading`, `empty`, `inline-error`), `single-flight`, and `tabular-nums`.
-2. **Generate a 25-Line `.cofa/repo_map.md`**:
+   - **Archetype C: Full-Stack / Frontend Web App**: Web server (`"has_web_server": true`). Focus on `0.0.0.0` binding, UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero`, `inline-error`), and tabular numeric presentation.
+3. **Generate a 25-Line `.cofa/repo_map.md`**:
    Write a compact reference map to orient `fork_context: false` workers in 1 turn:
    - Primary entrypoint file paths.
    - Data files and schema shapes.
    - Fast reproduction and test commands (<2s).
    - Locked constraints and anti-over-engineering rules.
-3. **Draft 3–4 Progressive DM Questions for `업무 담당자` (Scenario Agent)**:
+4. **Draft 3–4 Progressive DM Questions for `업무 담당자` (Scenario Agent)**:
    - ❌ **Prohibited**: Never ask `"지금 당장 해야 할 일을 하나, 둘, 셋, 넷으로 알려 주세요"`.
    - ✅ **Stage 1 (Scope & Boundary)**:
      `"제가 어떤 범위의 맥락이나 운영 기준을 여쭤보면 될까요?"`
-   - ✅ **Stage 2 (Granular Domain Context)**:
-     Ask specific, fine-grained questions about edge cases, data anomalies, or user flows.
+   - ✅ **Stage 2 (CSV Anomalies & Granular Context)**:
+     Ask specific questions directly based on `--inspect-csv` findings (e.g., how to handle discovered missing salary cells, negative quantities, duplicate user IDs, or malformed lines).
    - ✅ **Stage 3 (Priorities & Fallback Rules)**:
-     Ask about ranking rules, error handling priorities, or fallback behaviors.
-4. Candidate pastes these questions into the Scenario Agent DM and receives answers.
+     Ask about ranking rules, error handling priorities (quarantine vs error vs default), or fallback behaviors.
+5. Candidate pastes these questions into the Scenario Agent DM and receives answers.
 
-### Step 1B (`T+06m..15m`): 1-Round Frontier `grill-me` + `sharpen`
+### Step 1B (`T+06m..15m`): 1-Round Frontier `grill-me` + `sharpen` (Lock Scope & Contracts)
 Main session (`6.1 Sol`):
 1. **Five-Line Inverted Interview Restate**:
    Restate the target deliverable, evaluator, core success metric, anti-over-engineering boundary, and `{ root, first_nail }` load-bearing risk.
-2. Present **one single Frontier Round** containing 2–4 high-leverage decision questions:
-   ```markdown
-   ❓ **Q1** - **Tracer-Bullet End-to-End Flow**:
-   Should our 60-minute MVP focus on <specific core user flow from input/UI to final state>?
-   ➡️ Recommended: Yes. Delivering a complete end-to-end slice early guarantees working software.
-
-   ---
-
-   ❓ **Q2** - **Anti-Over-Engineering (`sharpen`)**:
-   Should we reject <unnecessary write locks / background queue / distributed cache>?
-   ➡️ Recommended: Yes. Workload is read-heavy; in-memory caching satisfies all latency targets without distributed complexity.
-   ```
+2. Present **one single Frontier Round** containing 2–4 high-leverage decision questions to lock:
+   - **Stage 1 (Story & Business Rules)**: Core end-to-end flow and DM priorities.
+   - **Stage 2 (UI 5-State & Information Diet)**: `default`, `loading`, `empty`, `filter-zero` (with reset button), `inline-error` (with recovery guidance, no `alert()`), One-Fact-One-Place (`IF-ZERO-DUPLICATION`), and `tabular-nums` for numbers.
+   - **Stage 3 (4-Layer System & Frozen Table)**: Architecture boundaries and verification table lock (`gate_frozen: true`).
 3. Candidate confirms (replies `"yes"`).
 4. **Populate `.cofa/trace.json`**:
    - Set `"has_web_server": false` for Archetype A, or `true` for Archetype B/C.
+   - Set `"gate_frozen": true` to activate Perspective 1 (`gate_lock`: No Skip-with-Reason Escape).
    - `binary_checks[]`: List functional requirements (`BC-01..N`) with expected `code_refs`, `test_cmd`, and `live_probe`.
    - `quantitative_metrics[]`: Performance and accuracy thresholds (`QM-01..N`).
    - `qualitative_rubrics[]`: Quality criteria (`QR-01..N`) scored on [0.0, 2.0].
    - `rejected_over_engineering[]`: Explicitly recorded anti-over-engineering decisions.
 5. Log baseline decision:
    ```bash
-   bash .cofa/log_decision.sh "T+15m" "Lock MVP Scope & trace.json" "Locked core flow; rejected over-engineering" "trace.json initialized" "PASS"
+   bash .cofa/log_decision.sh "T+15m" "Lock MVP Scope & trace.json" "Locked core flow; rejected over-engineering; froze verification table" "trace.json initialized" "PASS"
    ```
 
 ---
 
-## 3. Build Loop (`T+15m..150m`) — Tracer-Bullet Vertical Slices
+## 3. Build Loop (`T+15m..150m`) — Tracer-Bullet Vertical Slices & 4-Layer Architecture
 
-Never build horizontal layers in isolation. Build vertical, testable slices.
+Never build horizontal layers in isolation. Build vertical, testable slices adhering to the **4-Layer Web Architecture** and verified by the **4-Perspective Graph**:
+
+### The 4-Layer Web Architecture (`[BC-C1]`)
+1. **`data/parser`**: Header-name mapping (never numeric indices) + row-level error quarantine (`validRows` / `invalidRows`) + Safe-But-Wrong avoidance (no silent 0/empty suppression).
+2. **`domain/model`**: Pure business logic, filtering, sorting, and aggregations (used as derived state via `useMemo`/computed, never duplicated into mutable `useState`).
+3. **`api/server`**: `0.0.0.0` routes returning structured data alongside anomaly metadata.
+4. **`ui/components`**: 4-Partition UI state (`Raw Data`, `View Control`, `Async Feedback`, `Derived State`) + UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero`, `inline-error`).
 
 ### Vertical Slicing Workflow
 For each vertical slice (e.g., Slice 1: End-to-End Core Flow, Slice 2: Edge-Case Handling, Slice 3: Fallbacks):
@@ -111,21 +115,27 @@ For each vertical slice (e.g., Slice 1: End-to-End Core Flow, Slice 2: Edge-Case
      Implement BC-01 and BC-02:
      - Consult .cofa/repo_map.md for entrypoints and schemas.
      - Enforce ZERO-STUB & NO-TEST-CHEATING (no .skip/.only stubs).
+     - Wire every new module into live entrypoint (CODE-WIRING-B1).
      - Conditional rules: if web server, bind to 0.0.0.0; if data pipeline, prevent safe-but-wrong outputs.
      - Follow 3-hypothesis debugging if tests fail; stop on 3 identical failures.
      - Run test command and return fresh output.
      ```
 2. **Inspect Changed Files & Verification Output**:
    - Apply `verification-before-completion`: inspect `git diff` and examine fresh test output.
-3. **Run Level-2 Verification**:
-   - If task has a web server, test with guaranteed process cleanup:
+3. **Run Level-2 Verification & 4-Perspective Graph Audit**:
+   - Web server tasks:
      ```bash
      python3 .cofa/with_server.py --server "npm run dev" --port 3000 -- python3 .cofa/cofa_verify.py --run-tests --live
      ```
-   - For non-web tasks (Data/CLI/ML):
+   - Non-web tasks (Data/CLI/ML):
      ```bash
      python3 .cofa/cofa_verify.py --run-tests
      ```
+   - Automatically validates all 4 Graph Perspectives:
+     - **P1 `gate_lock`**: Frozen checks intact, zero skipped items.
+     - **P2 `structure_wiring`**: Entrypoint reachability, zero unimported modules (`CODE-WIRING-B1`).
+     - **P3 `ontology_contract`**: Header-name mapping in parsers, zero `window.alert()` in UI.
+     - **P4 `traceability_dag`**: Complete DAG edges (`source+desc` ➔ `code_refs` ➔ `test/probe` ➔ `decision`).
 4. **Fast System-1 Check with `luna_checker` (`6.0 Luna`)**:
    - Verify affected `binary_checks` and `qualitative_rubrics`.
    - Ensure corrupt inputs do not silently mask errors (Safe-But-Wrong check).
