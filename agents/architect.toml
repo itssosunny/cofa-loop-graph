@@ -32,10 +32,10 @@ Inspect the implementation against `README.md` and `.cofa/trace.json` across two
 
 ### 4-Perspective Graph Audit
 Audit the 4 verification perspectives evaluated by `.cofa/cofa_verify.py`:
-1. Perspective 1 (`gate_lock`): Ensure no frozen `BC-*` checks were removed, commented out, or marked `SKIP`/`N/A` from `.cofa/trace.json`.
+1. Perspective 1 (`gate_lock`): Ensure no frozen `BC-*` checks were removed, commented out, or marked `SKIP`/`N/A` from `.cofa/trace.json`. Verify the 3-Tier Test Pyramid: ensure `binary_checks` includes `unit`, `integration`, and `e2e` (when web server is active) (`P1-TEST-TIER-GAP`, `P1-TEST-TIER-INVALID`).
 2. Perspective 2 (`structure_wiring`): Ensure `CODE-WIRING-B1` is honored: every non-entrypoint module, parser, or component is imported and wired into the live application flow.
-3. Perspective 3 (`ontology_contract`): Ensure data parsers map columns by header name rather than hardcoded numeric indices, and ensure UI components avoid `window.alert()` in favor of 5-state inline feedback.
-4. Perspective 4 (`traceability_dag`): Verify complete DAG edges from requirements (`source` + `description`) to code (`code_refs`) to tests (`test_cmd` / `live_probe`) to architecture decisions (`decision_and_rationale`).
+3. Perspective 3 (`ontology_contract`): Ensure data parsers map columns by header name rather than hardcoded numeric indices, ensure UI components avoid `window.alert()` in favor of 5-state inline feedback, and enforce Chrome password manager popup suppression (`NO-PASSWORD-POPUP-TRAP`).
+4. Perspective 4 (`traceability_dag`): Verify complete DAG edges from requirements/constraints/invariants (`rule_kind` + `source` + `description`) to code (`code_refs`) to test files (`test_refs` annotated with `@trace BC-XX`) to live probes (`live_probe`) to architecture decisions (`decision_and_rationale`). Flag missing test files (`P4-MISSING-TEST-FILE`) or untagged test files (`P4-TEST-TRACE-TAG`).
 
 ### Korean Written Q&A Final Summary (`review_summary_kr`)
 In addition to the 2-Axis report, you MUST provide a structured Korean `review_summary_kr` section designed to directly answer post-submission written Q&A questions:

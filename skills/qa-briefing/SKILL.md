@@ -79,9 +79,16 @@ When invoked, the skill reads `.cofa/trace.json` (specifically `qa_briefing`), s
 - **코드 수정 및 합리적 수용 내역**:
   - 검수 지적 사항을 코드에서 어떻게 수정했는지, 혹은 왜 합리적 트레이드오프로 수용했는지 요약.
 
-### Part 4: 핵심 아키텍처 결정, 업무 담당자 우선순위 및 과설계 배제/한계점 요약
+### Part 4: 핵심 아키텍처 결정, 업무 담당자 우선순위, 양방향 추적 매트릭스 및 과설계 배제/한계점 요약
 - **핵심 아키텍처 결정 및 선택 근거**: Key design decisions recorded in `.cofa/decisions.tsv`.
 - **`업무 담당자` DM 확인 요구사항**: Priorities, edge-case rules, and fallback policies confirmed during Step 1A.
+- **[요구사항·제한사항·불변식·정량지표(BC/QM) ↔ 테스트 코드 양방향 추적 매트릭스]**:
+  - `BC-*` (`unit` / `integration` / `e2e`) + `QM-*` (데이터 건수 보존, 점수/개수 집계 일치) linked to test code verified with `@trace BC-XX` / `@trace QM-XX`.
+- **[제출 직전 60초 Cofa 좌측 Browser 탭 Batched Smoke 체크리스트 (H-Tier)]**:
+  - ① 기본 렌더링 및 CSV 로드 확인 (헤더/데이터 정상 표시 여부)
+  - ② 1-Click 역할 전환 버튼 클릭 동작 확인 (관리자/직원 권한 즉시 전환)
+  - ③ 필터 0건 / 인라인 에러 등 5-State 전환 확인 (빈 검색결과 초기화 버튼 동작)
+  - ④ 브라우저 런타임/콘솔 에러 0건 확인 (DevTools 콘솔 Uncaught Exception 부재)
 - **과설계 배제 근거 (`rejected_over_engineering`)**: Unneeded distributed complexity or heavy patterns rejected to defend cognitive score.
 - **솔직한 남은 한계점 (`known_limitations`)**: Transparent trade-offs acknowledged for the submission document.
 

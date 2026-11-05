@@ -60,13 +60,28 @@ The loop detects and supports three task archetypes seamlessly:
 
 ---
 
+## 3-Tier Test Pyramid & Bidirectional Traceability (`@trace`)
+
+Every functional check (`BC-*`) and quantitative metric (`QM-*`) is bound to test code via explicit bidirectional traceability:
+- **Tier 1 (`unit`)**: Fast unit tests for `data/parser` header mapping & row quarantine invariants (`BC-*`), data row conservation (`QM-01`), and `domain/model` pure business logic.
+- **Tier 2 (`integration`)**: Integration tests for `api/server` request validation, role guard checks, and domain score/count aggregation metrics (`QM-02`).
+- **Tier 3 (`e2e`)**: End-to-end DOM rendering and interaction tests via `.cofa/with_server.py` and the bundled headless `playwright` MCP server. Verifies 5-state transitions, 1-Click Role Switcher execution, and 0 console errors.
+- **Bidirectional `@trace` Tagging**: Every test function or file MUST contain the literal check ID (e.g., `# @trace BC-01`, `// @trace BC-02`, `# @trace QM-01`).
+- **60-Second Cofa Browser Batched Smoke (H-Tier)**: Prior to final submission, click through the Cofa left-sidebar Browser preview tab:
+  1. 기본 렌더링 및 CSV 로드 확인 (헤더/데이터 정상 표시 여부)
+  2. 1-Click 역할 전환 버튼 클릭 동작 확인 (관리자/직원 권한 즉시 전환)
+  3. 필터 0건 / 인라인 에러 등 5-State 전환 확인 (빈 검색결과 초기화 버튼 동작)
+  4. 브라우저 런타임/콘솔 에러 0건 확인 (DevTools 콘솔 Uncaught Exception 부재)
+
+---
+
 ## 4-Perspective Graph Verification
 
 Built directly into `.cofa/cofa_verify.py`, the verifier enforces four architectural perspectives:
-- **Perspective 1 (`gate_lock`)**: Frozen verification table lock (`gate_frozen: true`). Prevents removing frozen `BC-*` checks or skipping them via `SKIP`/`N/A` (No Skip-with-Reason Escape).
-- **Perspective 2 (`structure_wiring`)**: Live entrypoint reachability (`CODE-WIRING-B1`). Ensures every non-entrypoint module or parser is imported and wired into the application flow (zero orphaned modules).
+- **Perspective 1 (`gate_lock`)**: Frozen verification table lock (`gate_frozen: true`). Enforces 3-Tier Test Pyramid coverage (`unit`, `integration`, and `e2e` when web server is active) (`P1-TEST-TIER-GAP`, `P1-TEST-TIER-INVALID`). Prevents removing frozen `BC-*` checks or skipping them via `SKIP`/`N/A` (No Skip-with-Reason Escape).
+- **Perspective 2 (`structure_wiring`)**: Live entrypoint reachability (`CODE-WIRING-B1`). Ensures every non-entrypoint module or parser referenced in trace table or `qa_briefing` is imported and wired into the application flow (zero orphaned modules).
 - **Perspective 3 (`ontology_contract`)**: Enforces header-name mapping contracts on CSV parsers, forbids `window.alert()` in UI components, and enforces Chrome password manager popup suppression (`NO-PASSWORD-POPUP-TRAP`) to prevent proctoring fullscreen-exit penalties.
-- **Perspective 4 (`traceability_dag`)**: Verifies complete DAG edges from requirements (`source` + `description`) to code (`code_refs`) to tests (`test_cmd` / `live_probe`) to architecture decisions (`decision_and_rationale`).
+- **Perspective 4 (`traceability_dag`)**: Verifies complete DAG edges from requirements/constraints/invariants/quantitative metrics (`rule_kind` + `source` + `description`) to code (`code_refs`) to test files (`test_refs` containing literal `@trace BC-XX` / `@trace QM-XX`) to architecture decisions (`decision_and_rationale`). Flag missing test files (`P4-MISSING-TEST-FILE`) or untagged test files (`P4-TEST-TRACE-TAG`).
 
 ---
 
@@ -74,10 +89,11 @@ Built directly into `.cofa/cofa_verify.py`, the verifier enforces four architect
 
 ```text
 cofa-loop-graph/
+├── AGENTS.md                                # Workspace & agent operating instructions
 ├── plugin.json                              # Agent Plugins 1.0 manifest ($schema, interface, extensions, mcpServers)
 ├── .codex-plugin/
 │   └── plugin.json                          # Canonical Codex plugin manifest
-├── .mcp.json                                # Declares "evaluate" MCP server (.cofa/luna_mcp.py mcp)
+├── .mcp.json                                # Declares "evaluate" (Luna) and "playwright" (--headless) MCP servers
 ├── .agents/
 │   └── plugins/
 │       └── marketplace.json                 # Marketplace catalog ("cofa" namespace)

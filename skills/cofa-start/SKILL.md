@@ -45,7 +45,11 @@ Print these questions formatted with a clear copy-paste block so the candidate c
 ### Step 4. Initialize `.cofa/trace.json` & Present 1-Round Frontier Grill
 1. Copy `.cofa/trace.template.json` to `.cofa/trace.json` if not already present.
 2. Ensure `"gate_frozen": true` is set (Perspective 1 Gate Lock).
-3. Populate initial `binary_checks[]`, `quantitative_metrics[]`, and `qualitative_rubrics[]` based on `README.md`.
+3. Populate initial `binary_checks[]`, `quantitative_metrics[]`, and `qualitative_rubrics[]` based on `README.md` and DM requirements. Ensure `binary_checks[]` covers the **3-Tier Test Pyramid**:
+   - `BC-01` (`rule_kind: "invariant"`, `test_tier: "unit"`): Data parser anomaly quarantine & pure domain calculations.
+   - `BC-02` (`rule_kind: "constraint"`, `test_tier: "integration"`): API input validation, role guard checks, and CSV-to-API flow.
+   - `BC-03` (`rule_kind: "requirement"`, `test_tier: "e2e"`): Rendered DOM 5-State flow, 1-Click Role Switcher execution, and live browser tests via bundled headless `playwright` MCP.
+   Every test suite referenced in `test_refs` MUST be annotated with the literal tag `@trace BC-XX`.
 4. Present the **Five-Line Inverted Restate** and **1-Round Frontier `grill-me`** in Korean to lock scope with the candidate:
    - Target Deliverable & Archetype (Data/API/Web).
    - Core Success Metric.

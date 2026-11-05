@@ -290,7 +290,11 @@ def evaluate_quantitative_metrics(
 ) -> list[dict[str, Any]]:
     """Evaluates dynamic quantitative_metrics[] against numeric targets."""
     results: list[dict[str, Any]] = []
-    is_template = trace.get("project_name") in ("populated-on-exam-day", "template", "")
+    is_template = (
+        trace.get("project_name") in ("populated-on-exam-day", "template", "")
+        or any(str(bc.get("description", "")).startswith("<Populated") for bc in trace.get("binary_checks", []))
+        or any(str(qm.get("description", "")).startswith("<Populated") for qm in trace.get("quantitative_metrics", []))
+    )
 
     for qm in trace.get("quantitative_metrics", []):
         qid = qm.get("id", "QM-UNKNOWN")
@@ -629,7 +633,13 @@ def evaluate_four_perspective_graph(root: Path, trace: dict[str, Any]) -> dict[s
     - Perspective 4: traceability_dag (Requirements-to-Screen-to-Code-to-Test-to-Doc DAG)
     """
     bcs = trace.get("binary_checks", [])
-    is_template = any(str(bc.get("description", "")).startswith("<Populated") for bc in bcs) or any(str(bc.get("source", "")).startswith("<") for bc in bcs)
+    qms = trace.get("quantitative_metrics", [])
+    is_template = (
+        trace.get("project_name") == "populated-on-exam-day"
+        or any(str(bc.get("description", "")).startswith("<Populated") for bc in bcs)
+        or any(str(bc.get("source", "")).startswith("<") for bc in bcs)
+        or any(str(qm.get("description", "")).startswith("<Populated") for qm in qms)
+    )
     has_web_server = bool(trace.get("has_web_server", True))
 
     p1_defects: list[dict[str, Any]] = []
@@ -642,6 +652,32 @@ def evaluate_four_perspective_graph(root: Path, trace: dict[str, Any]) -> dict[s
     gate_frozen = bool(trace.get("gate_frozen", False))
     frozen_file = root / ".cofa" / ".frozen_bcs.json"
     current_bcs = [bc.get("id") for bc in bcs if bc.get("id")]
+
+    test_tier_summary: dict[str, list[str]] = {"unit": [], "integration": [], "e2e": []}
+    for bc in bcs:
+        cid = bc.get("id", "BC")
+        tier = bc.get("test_tier")
+        if tier in test_tier_summary:
+            test_tier_summary[tier].append(cid)
+        elif not is_template:
+            p1_defects.append({
+                "rule": "P1-TEST-TIER-INVALID",
+                "id": cid,
+                "detail": f"Check {cid} has missing or invalid test_tier '{tier}'. Must be 'unit', 'integration', or 'e2e'."
+            })
+
+    if not is_template:
+        required_tiers = {"unit", "integration"}
+        if has_web_server:
+            required_tiers.add("e2e")
+        present_tiers = {tier for tier, ids in test_tier_summary.items() if ids}
+        missing_tiers = sorted(list(required_tiers - present_tiers))
+        if missing_tiers:
+            p1_defects.append({
+                "rule": "P1-TEST-TIER-GAP",
+                "id": "TIER-PYRAMID",
+                "detail": f"Missing required test_tier(s) in binary_checks: {missing_tiers}. Must include unit, integration, and e2e."
+            })
 
     if gate_frozen:
         if not current_bcs and not is_template:
@@ -699,6 +735,12 @@ def evaluate_four_perspective_graph(root: Path, trace: dict[str, Any]) -> dict[s
         f_str = str(f).strip()
         if f_str and not f_str.startswith("<"):
             referenced_files.add(f_str.split(":")[0])
+
+    for qm in qms:
+        for r in qm.get("code_refs", []):
+            r_str = str(r).strip()
+            if r_str and not r_str.startswith("<"):
+                referenced_files.add(r_str.split(":")[0])
 
     all_source_files = list(iter_source_files(root))
     source_texts: dict[Path, str] = {}
@@ -814,12 +856,105 @@ def evaluate_four_perspective_graph(root: Path, trace: dict[str, Any]) -> dict[s
                 "detail": f"{cid} missing decision_and_rationale in DAG."
             })
 
+        rule_kind = str(bc.get("rule_kind", "")).strip().lower()
+        if rule_kind not in {"requirement", "constraint", "invariant"}:
+            p4_defects.append({
+                "rule": "P4-DAG-RULE-KIND",
+                "id": cid,
+                "detail": f"{cid} has missing or invalid rule_kind '{bc.get('rule_kind')}'. Must be 'requirement', 'constraint', or 'invariant'."
+            })
+
+        test_refs = bc.get("test_refs", [])
+        valid_test_refs = [r for r in test_refs if str(r).strip() and not str(r).startswith("<")]
+        if not valid_test_refs:
+            p4_defects.append({
+                "rule": "P4-DAG-TEST-REF",
+                "id": cid,
+                "detail": f"{cid} missing valid test_refs in DAG (e.g. ['tests/test_parser.py:test_bc_01'])."
+            })
+        else:
+            for ref in valid_test_refs:
+                rel_test_path = str(ref).strip().split(":")[0]
+                target_test = root / rel_test_path
+                if not target_test.exists() or not target_test.is_file():
+                    p4_defects.append({
+                        "rule": "P4-MISSING-TEST-FILE",
+                        "id": cid,
+                        "detail": f"Test file referenced in test_refs does not exist: {rel_test_path}"
+                    })
+                else:
+                    test_file_text = source_texts.get(target_test)
+                    if test_file_text is None:
+                        try:
+                            test_file_text = target_test.read_text(encoding="utf-8")
+                        except Exception:
+                            test_file_text = ""
+                    if cid not in test_file_text:
+                        p4_defects.append({
+                            "rule": "P4-TEST-TRACE-TAG",
+                            "id": cid,
+                            "detail": f"Test file '{rel_test_path}' does not contain traceability tag '{cid}' (e.g. '@trace {cid}' or test name containing '{cid}'). Every requirement/constraint/invariant must be explicitly linked inside its test code."
+                        })
+
+    for qm in qms:
+        qid = qm.get("id", "QM")
+        if is_template:
+            p4_warnings.append(f"{qid}: template placeholder active")
+            continue
+        qm_code_refs = qm.get("code_refs", [])
+        valid_qm_code_refs = [r for r in qm_code_refs if str(r).strip() and not str(r).startswith("<")]
+        if not valid_qm_code_refs:
+            p4_defects.append({
+                "rule": "P4-QM-DAG-CODE",
+                "id": qid,
+                "detail": f"{qid} missing valid code_refs in DAG."
+            })
+        qm_test_refs = qm.get("test_refs", [])
+        valid_qm_test_refs = [r for r in qm_test_refs if str(r).strip() and not str(r).startswith("<")]
+        if not valid_qm_test_refs:
+            p4_defects.append({
+                "rule": "P4-QM-DAG-TEST-REF",
+                "id": qid,
+                "detail": f"{qid} missing valid test_refs in DAG (e.g. ['tests/test_api.py:test_qm_01'])."
+            })
+        else:
+            for ref in valid_qm_test_refs:
+                rel_test_path = str(ref).strip().split(":")[0]
+                target_test = root / rel_test_path
+                if not target_test.exists() or not target_test.is_file():
+                    p4_defects.append({
+                        "rule": "P4-MISSING-TEST-FILE",
+                        "id": qid,
+                        "detail": f"Test file referenced in test_refs for {qid} does not exist: {rel_test_path}"
+                    })
+                else:
+                    test_file_text = source_texts.get(target_test)
+                    if test_file_text is None:
+                        try:
+                            test_file_text = target_test.read_text(encoding="utf-8")
+                        except Exception:
+                            test_file_text = ""
+                    if qid not in test_file_text:
+                        p4_defects.append({
+                            "rule": "P4-TEST-TRACE-TAG",
+                            "id": qid,
+                            "detail": f"Test file '{rel_test_path}' does not contain traceability tag '{qid}' (e.g. '@trace {qid}' or test name containing '{qid}'). Every quantitative metric must be explicitly linked inside its test code."
+                        })
+
     all_graph_defects = p1_defects + p2_defects + p3_defects + p4_defects
     return {
-        "perspective_1_gate_lock": {"gate_frozen": gate_frozen, "defects": p1_defects},
+        "perspective_1_gate_lock": {
+            "gate_frozen": gate_frozen,
+            "test_tier_summary": test_tier_summary,
+            "defects": p1_defects,
+        },
         "perspective_2_structure_wiring": {"checked_files": checked_files, "defects": p2_defects},
         "perspective_3_ontology_contract": {"defects": p3_defects},
-        "perspective_4_traceability_dag": {"defects": p4_defects, "warnings": p4_warnings},
+        "perspective_4_traceability_dag": {
+            "test_tier_summary": test_tier_summary,
+            "defects": p4_defects,
+            "warnings": p4_warnings,
+        },
         "defects": all_graph_defects,
         "passed": len(all_graph_defects) == 0,
     }
@@ -1008,6 +1143,36 @@ def print_defense_cheatsheet(trace: dict[str, Any], root: Path, luna_result: Opt
         print(f"  - [{cid}] ({src}) {desc}")
         print(f"    * 관련 코드: {refs}")
         print(f"    * 설계 결정 및 근거: {rat}")
+
+    print("• [요구사항·제한사항·불변식·정량지표(BC/QM) ↔ 테스트 코드 양방향 추적 매트릭스]:")
+    for bc in trace.get("binary_checks", []):
+        cid = bc.get("id", "BC")
+        rkind = str(bc.get("rule_kind", "requirement")).upper()
+        tier = str(bc.get("test_tier", "unit")).lower()
+        src = bc.get("source", "")
+        code_refs = ", ".join(bc.get("code_refs", [])) or "None"
+        test_refs = ", ".join(bc.get("test_refs", [])) or "None"
+        print(f"  - [{cid}] [{rkind}] [Tier: {tier}] 출처: {src}")
+        print(f"    * 코드 구현: {code_refs}")
+        print(f"    * 테스트 검증 (@trace 검증 완료): {test_refs}")
+
+    for qm in trace.get("quantitative_metrics", []):
+        qid = qm.get("id", "QM")
+        src = qm.get("source", "")
+        desc = qm.get("description", "")
+        op = qm.get("operator", "")
+        tgt = qm.get("target", "")
+        code_refs = ", ".join(qm.get("code_refs", [])) or "None"
+        test_refs = ", ".join(qm.get("test_refs", [])) or "None"
+        print(f"  - [{qid}] [QUANTITATIVE_METRIC] {desc} (목표: {op} {tgt}) 출처: {src}")
+        print(f"    * 코드 구현: {code_refs}")
+        print(f"    * 테스트 검증 (@trace 검증 완료): {test_refs}")
+
+    print("• [제출 직전 60초 Cofa 좌측 Browser 탭 Batched Smoke 체크리스트 (H-Tier)]:")
+    print("  - ① 기본 렌더링 및 CSV 로드 확인 (헤더/데이터 정상 표시 여부)")
+    print("  - ② 1-Click 역할 전환 버튼 클릭 동작 확인 (관리자/직원 권한 즉시 전환)")
+    print("  - ③ 필터 0건 / 인라인 에러 등 5-State 전환 확인 (빈 검색결과 초기화 버튼 동작)")
+    print("  - ④ 브라우저 런타임/콘솔 에러 0건 확인 (DevTools 콘솔 Uncaught Exception 부재)")
 
     print("• 과설계 배제 근거 (Rejected Over-Engineering — 인지 점수 방어):")
     roes = trace.get("rejected_over_engineering", [])

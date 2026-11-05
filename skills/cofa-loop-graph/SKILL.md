@@ -87,9 +87,13 @@ Main session (`6.1 Sol`):
 4. **Populate `.cofa/trace.json`**:
    - Set `"has_web_server": false` for Archetype A, or `true` for Archetype B/C.
    - Set `"gate_frozen": true` to activate Perspective 1 (`gate_lock`: No Skip-with-Reason Escape).
-   - `binary_checks[]`: List functional requirements (`BC-01..N`) with expected `code_refs`, `test_cmd`, and `live_probe`.
-   - `quantitative_metrics[]`: Performance and accuracy thresholds (`QM-01..N`).
-   - `qualitative_rubrics[]`: Quality criteria (`QR-01..N`) scored on [0.0, 2.0].
+   - `binary_checks[]`: List functional requirements spanning the **3-Tier Test Pyramid**:
+     - `BC-01` (`rule_kind: "invariant"`, `test_tier: "unit"`): Data parser anomaly quarantine & pure domain calculations.
+     - `BC-02` (`rule_kind: "constraint"`, `test_tier: "integration"`): API validation, role guard checks, and CSV-to-API flows.
+     - `BC-03` (`rule_kind: "requirement"`, `test_tier: "e2e"`): Rendered DOM 5-State flow, 1-Click Role Switcher, and live browser tests via bundled headless `playwright` MCP.
+     - Every test file referenced in `test_refs` MUST contain literal `@trace BC-XX`.
+   - `quantitative_metrics[]`: Performance and accuracy thresholds (`QM-01..N`) with `code_refs` and `test_refs` annotated with `@trace QM-XX`.
+   - `qualitative_rubrics[]`: Quality criteria (`QR-01..N`) scored on [0.0, 2.0] evaluated by `luna_checker` & `architect`.
    - `rejected_over_engineering[]`: Explicitly recorded anti-over-engineering decisions.
 5. Log baseline decision:
    ```bash
@@ -107,6 +111,18 @@ Never build horizontal layers in isolation. Build vertical, testable slices adhe
 2. **`domain/model`**: Pure business logic, filtering, sorting, and aggregations (used as derived state via `useMemo`/computed, never duplicated into mutable `useState`).
 3. **`api/server`**: `0.0.0.0` routes returning structured data alongside anomaly metadata.
 4. **`ui/components`**: 4-Partition UI state (`Raw Data`, `View Control`, `Async Feedback`, `Derived State`) + UI 5-State Matrix (`default`, `loading`, `empty`, `filter-zero`, `inline-error`) + `NO-PASSWORD-POPUP-TRAP` (suppress Chrome password popup via `autoComplete="new-password"` or `type="text"` with `WebkitTextSecurity:'disc'` to prevent exam fullscreen exit) + 1-Click Role Switcher buttons (`[관리자 즉시 로그인]`, `[직원 즉시 로그인]`).
+
+### The 3-Tier Test Pyramid & Bidirectional Traceability Harness
+Every vertical slice must be tested across the 3 Test Tiers with explicit `@trace` bidirectional linking:
+1. **Tier 1 (`unit`)**: Fast unit tests for `data/parser` header mapping & row quarantine invariants (`BC-*`), data row conservation metrics (`QM-*`), and `domain/model` pure business logic.
+2. **Tier 2 (`integration`)**: Integration tests for `api/server` request validation, HTTP status codes, role guard checks, and latency benchmarks (`QM-*`).
+3. **Tier 3 (`e2e`)**: End-to-end DOM rendering and interaction tests via `.cofa/with_server.py` and the bundled `playwright` MCP server (`@playwright/mcp@latest --headless`). Verify 1-Click Role Switcher execution, 5-state transitions, and 0 console errors.
+- **Bidirectional Traceability**: Every test function or file MUST contain the literal check ID (e.g., `# @trace BC-01`, `// @trace BC-02`, `# @trace QM-01`).
+- **60-Second Cofa Browser Batched Smoke (H-Tier)**: Prior to final submission, spend 60 seconds manually clicking through the Cofa left-sidebar Browser preview tab:
+  - ① 기본 렌더링 및 CSV 로드 확인 (헤더/데이터 정상 표시 여부)
+  - ② 1-Click 역할 전환 버튼 클릭 동작 확인 (관리자/직원 권한 즉시 전환)
+  - ③ 필터 0건 / 인라인 에러 등 5-State 전환 확인 (빈 검색결과 초기화 버튼 동작)
+  - ④ 브라우저 런타임/콘솔 에러 0건 확인 (DevTools 콘솔 Uncaught Exception 부재)
 
 ### Vertical Slicing Workflow
 For each vertical slice (e.g., Slice 1: End-to-End Core Flow, Slice 2: Edge-Case Handling, Slice 3: Fallbacks):

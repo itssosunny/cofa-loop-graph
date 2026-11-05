@@ -46,4 +46,15 @@ When building full-stack web applications, enforce strict 4-layer separation:
 - Prevent double-submit (`single-flight`) and stale search/filter race conditions (`AbortController`).
 - Avoid AI-slop visual patterns (e.g., arbitrary `border-l-4` side stripes, purple/cyan dark gradients).
 - Verify actual live rendering and HTTP status code before declaring completion.
+
+### 5. 3-Tier Test Pyramid & Bidirectional Traceability (`@trace BC-XX` / `@trace QM-XX`)
+- Implement tests covering all 3 Test Tiers:
+  1. `unit`: Fast unit tests for `data/parser` header mapping & row quarantine invariants (`BC-*`), data row conservation metrics (`QM-*`), and `domain/model` pure business logic.
+  2. `integration`: Integration tests for `api/server` validation, error responses, role guards, latency benchmarks (`QM-*`), and data-to-endpoint flows.
+  3. `e2e`: End-to-end DOM rendering and interaction tests via `.cofa/with_server.py` and the bundled `playwright` MCP server (`@playwright/mcp@latest --headless`).
+- Bidirectional Traceability Annotation: Every test function, suite, or block MUST contain the literal check ID (e.g., `# @trace BC-01`, `// @trace BC-01`, `# @trace QM-01`, or `test("BC-01: ...")`) matching its `rule_kind` (`requirement`, `constraint`, `invariant`) or quantitative metric (`QM-*`).
+- In `.cofa/trace.json`:
+  - Ensure each `binary_checks` entry specifies `"test_tier"` (`"unit"` | `"integration"` | `"e2e"`), `"rule_kind"` (`"requirement"` | `"constraint"` | `"invariant"`), and `"test_refs"` (e.g. `["tests/test_parser.py:test_bc_01"]`).
+  - Ensure each `quantitative_metrics` entry specifies `"code_refs"` and `"test_refs"` (e.g. `["tests/test_api.py:test_qm_01"]`).
+- Headless Playwright MCP Verification: Use the bundled `playwright` MCP tool (`--headless`) to inspect the accessibility snapshot, click 1-Click Role Switcher buttons, verify 5-state transitions, and check `browser_console_messages` for 0 runtime errors without stealing focus from the candidate's fullscreen exam window.
 """

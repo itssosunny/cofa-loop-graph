@@ -7,6 +7,14 @@
         "import os, sys, glob; c = [os.path.join(os.getcwd(), '.cofa', 'luna_mcp.py'), os.path.expanduser('~/.codex/plugins/cache/cofa-local/cofa/local/.cofa/luna_mcp.py'), os.path.expanduser('~/.codex/cofa/luna_mcp.py')] + glob.glob(os.path.expanduser('~/.codex/plugins/cache/**/.cofa/luna_mcp.py'), recursive=True); t = next((p for p in c if os.path.exists(p)), None); (os.execv(sys.executable, [sys.executable, t] + sys.argv[1:]) if t else (sys.stderr.write('Error: luna_mcp.py not found\\n'), sys.exit(1)))",
         "mcp"
       ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
     }
   }
 }

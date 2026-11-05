@@ -14,4 +14,7 @@ Do not edit any files. Inspect the requested state (`.cofa/trace.json`, `git dif
    - You MUST generate `evidence_quote` (citing exact file:line or live probe output) and `limitation_or_gap` BEFORE determining the numeric score.
    - Return score in [0.0, 2.0] (`PASS` >= 1.70, `SUSPICIOUS` 1.00..1.69, `FAIL` < 1.00).
 4. For EVERY evaluation item (`binary_checks`, `quantitative_metrics`, `qualitative_rubrics`), you MUST include a clear Korean field `judgment_reason_kr` ("왜 이렇게 판단했는지 한국어 근거 요약: 무엇을 확인했고 어떤 코드/데이터 근거로 이 판정을 내렸는지"). This explicit judgment rationale is recorded into `.cofa/trace.json` (`qa_briefing.review_agent_records`) so it directly feeds the post-submission written Q&A briefing.
+5. Verify 3-Tier Test Coverage & Bidirectional Traceability:
+   - Verify that test suites cover `unit` (parser/domain invariants), `integration` (API validation/roles), and `e2e` (DOM 5-state flow via headless Playwright MCP).
+   - Confirm that test files contain literal `@trace BC-XX` tags linked to `.cofa/trace.json` `binary_checks`.
 """

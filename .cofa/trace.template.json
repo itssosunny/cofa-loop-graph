@@ -15,24 +15,24 @@
   "binary_checks": [
     {
       "id": "BC-01",
-      "source": "README.md",
-      "description": "<Populated at Checkpoint 1 from README.md>",
-      "decision_and_rationale": "<Why we chose this implementation approach>",
+      "rule_kind": "invariant",
+      "source": "README.md / Data & Domain Invariant",
+      "test_tier": "unit",
+      "description": "<Populated at Checkpoint 1: CSV parser anomaly quarantine & domain calculation invariant>",
+      "decision_and_rationale": "<Why this parser/domain unit invariant was designed this way>",
       "code_refs": [],
-      "test_cmd": "",
-      "live_probe": {
-        "method": "GET",
-        "path": "/",
-        "expect_status": 200,
-        "expect_substrings": []
-      }
+      "test_refs": [],
+      "test_cmd": ""
     },
     {
       "id": "BC-02",
-      "source": "Scenario Agent DM (업무 담당자)",
-      "description": "<Populated at Checkpoint 1 from DM reply>",
-      "decision_and_rationale": "<How DM edge case was handled>",
+      "rule_kind": "constraint",
+      "source": "Scenario Agent DM (업무 담당자) / API Constraint",
+      "test_tier": "integration",
+      "description": "<Populated at Checkpoint 1 from DM reply: API validation, role guard, & CSV-to-API integration>",
+      "decision_and_rationale": "<How DM constraint/edge case was handled in API layer>",
       "code_refs": [],
+      "test_refs": [],
       "test_cmd": "",
       "live_probe": {
         "method": "POST",
@@ -41,24 +41,45 @@
         "expect_status": 400,
         "expect_substrings": []
       }
+    },
+    {
+      "id": "BC-03",
+      "rule_kind": "requirement",
+      "source": "README.md / Core User Flow & 5-State UI",
+      "test_tier": "e2e",
+      "description": "<Populated at Checkpoint 1: Live Browser E2E / Rendered DOM 5-State & 1-Click Role Switcher flow>",
+      "decision_and_rationale": "<How end-to-end UI rendering, state transitions, and role switching are verified>",
+      "code_refs": [],
+      "test_refs": [],
+      "test_cmd": "",
+      "live_probe": {
+        "method": "GET",
+        "path": "/",
+        "expect_status": 200,
+        "expect_substrings": []
+      }
     }
   ],
   "quantitative_metrics": [
     {
       "id": "QM-01",
-      "source": "README.md / Platform Stability",
-      "description": "Max live endpoint latency (ms)",
-      "metric_type": "max_probe_latency_ms",
-      "operator": "<=",
-      "target": 1500
+      "source": "Data Row Conservation (데이터 건수 보존)",
+      "description": "<Populated at Checkpoint 1: Parsed valid rows + quarantined anomaly rows == total CSV input rows (누락 건수 0)>",
+      "measure_cmd": "",
+      "operator": "==",
+      "target": 0,
+      "code_refs": [],
+      "test_refs": []
     },
     {
       "id": "QM-02",
-      "source": "Task Specific",
-      "description": "<Populated at Checkpoint 1: e.g., minimum items or accuracy metric>",
+      "source": "README.md / Score or Count Aggregation (점수·개수 집계)",
+      "description": "<Populated at Checkpoint 1: Domain score calculation or filtered/summary item count matches expected target>",
       "measure_cmd": "",
       "operator": ">=",
-      "target": 100
+      "target": 1,
+      "code_refs": [],
+      "test_refs": []
     }
   ],
   "qualitative_rubrics": [

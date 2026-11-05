@@ -96,6 +96,17 @@ EOF
     echo "✓ Registered [mcp_servers.evaluate] in ${CODEX_CONFIG}"
 fi
 
+# Register playwright MCP server in config.toml
+if ! grep -q '\[mcp_servers\.playwright\]' "${CODEX_CONFIG}"; then
+    cat << 'EOF' >> "${CODEX_CONFIG}"
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest", "--headless"]
+EOF
+    echo "✓ Registered [mcp_servers.playwright] in ${CODEX_CONFIG}"
+fi
+
 # 2. Register Plugin via Codex CLI (if available)
 if command -v codex >/dev/null 2>&1; then
     echo "• Registering marketplace and installing plugin via codex CLI..."
